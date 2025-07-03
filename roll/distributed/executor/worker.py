@@ -118,7 +118,7 @@ class Worker:
 
     @staticmethod
     def get_visible_gpus():
-        return os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",")
+        return os.environ.get("ASCEND_RT_VISIBLE_DEVICES", "").split(",")
 
     def get_devices_info(self):
         devices_info = [

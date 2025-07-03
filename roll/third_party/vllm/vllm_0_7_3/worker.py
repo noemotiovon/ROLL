@@ -55,4 +55,4 @@ class Worker073(Worker, WorkerHelper):
         if hasattr(self, 'recv_manager'):
             self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()

@@ -36,7 +36,7 @@ prompts = [
 batch = tokenizer(prompts, return_tensors="pt", padding=True)
 
 model = model.to("cpu")
-torch.cuda.empty_cache()
+torch.npu.empty_cache()
 log_gpu_memory_usage(head="initialize offload")
 breakpoint()
 
@@ -48,7 +48,7 @@ with torch.no_grad():
 
 del outputs, input_ids, model
 gc.collect()
-torch.cuda.empty_cache()
+torch.npu.empty_cache()
 log_gpu_memory_usage(head="forward offload")
 
 breakpoint()

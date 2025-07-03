@@ -381,12 +381,12 @@ class SchedulerSA(Scheduler):
         return ReleaseMemoryOccupationReqOutput()
     
     def resume_memory_occupation(self, recv_req: ResumeMemoryOccupationReqInput):
-        self.tp_worker.worker.model_runner.model.to(torch.cuda.current_device())
+        self.tp_worker.worker.model_runner.model.to(torch.npu.current_device())
         self.memory_saver_adapter.resume()
 
         gc.collect()
-        torch.cuda.empty_cache()
-        self.tp_worker.worker.model_runner.model.to(torch.cuda.current_device())
+        torch.npu.empty_cache()
+        self.tp_worker.worker.model_runner.model.to(torch.npu.current_device())
         _import_static_state(
             self.tp_worker.worker.model_runner.model, self.stashed_model_static_state
         )

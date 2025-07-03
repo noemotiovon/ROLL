@@ -15,7 +15,8 @@ import gc
 from typing import Optional
 
 import torch
-from vllm.v1.worker.gpu_worker import Worker
+# from vllm.v1.worker.gpu_worker import Worker
+from vllm_ascend.worker.worker_v1 import NPUWorker as Worker
 from vllm.device_allocator.cumem import CuMemAllocator
 
 from roll.third_party.vllm.worker_helper import WorkerHelper
@@ -52,7 +53,7 @@ class Worker084(Worker, WorkerHelper):
         if hasattr(self, 'recv_manager'):
             self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
     def broadcast_bucket(self, src_pp_rank, meta_infos, bucket_size):
         RecvBucketManager.dict_to_meta(meta_infos)

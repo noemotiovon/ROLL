@@ -51,15 +51,15 @@ class ModelRunnerSA(ModelRunner):
         # This can reduce thread conflicts and speed up weight loading.
         if self.device != "cpu":
             torch.set_num_threads(1)
-        if self.device == "cuda":
-            if torch.cuda.get_device_capability()[0] < 8:
+        if self.device == "npu":
+            if torch.npu.get_device_capability()[0] < 8:
                 if self.should_log:
                     logger.info(
                         "Compute capability below sm80. Use float16 due to lack of bfloat16 support."
                     )
                 self.server_args.dtype = "float16"
                 self.model_config.dtype = torch.float16
-                if torch.cuda.get_device_capability()[1] < 5:
+                if torch.npu.get_device_capability()[1] < 5:
                     raise RuntimeError("SGLang only supports sm75 and above.")
 
         set_cuda_arch()
@@ -154,7 +154,7 @@ class ModelRunnerSA(ModelRunner):
         collective.init_collective_group(world_size, rank, backend=backend, group_name=group_name,
                                          master_addr=master_addr, master_port=master_port)
         # A small all_reduce for warmup.
-        collective.allreduce(torch.zeros(1).cuda(), group_name=group_name)
+        collective.allreduce(torch.zeros(1).npu(), group_name=group_name)
         self.model_update_comm_plan[src_pp_rank] = dict(rank=rank,
                                                         world_size=world_size,
                                                         src_pp_rank=src_pp_rank,
@@ -169,7 +169,7 @@ class ModelRunnerSA(ModelRunner):
             return True, "Succeeded to broadcast_bucket."
 
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        buffer = torch.empty(bucket_size, dtype=torch.int8, device="cuda")
+        buffer = torch.empty(bucket_size, dtype=torch.int8, device="npu")
         collective.broadcast(tensor=buffer, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter_in_bucket(meta_infos, buffer, [dist.get_rank()])
         return True, "Succeeded to broadcast_bucket."
@@ -178,7 +178,7 @@ class ModelRunnerSA(ModelRunner):
         if src_pp_rank not in self.model_update_comm_plan:
             return True, "Succeeded to broadcast_parameter."
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device="npu")
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter(parameter_name, weight, [dist.get_rank()])
         return True, "Succeeded to broadcast_parameter."

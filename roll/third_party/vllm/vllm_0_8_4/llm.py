@@ -72,9 +72,9 @@ class Llm084(LLM):
         # https://github.com/vllm-project/vllm/pull/14189/files
         # TODO do not override other options in PYTORCH_CUDA_ALLOC_CONF
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ""
-        # torch.cuda may already init, explicitly disable expandable_segments
+        # torch.npu may already init, explicitly disable expandable_segments
         # here (only matters when VLLM_USE_RAY_SPMD_WORKER=0)
-        torch.cuda.memory._set_allocator_settings("expandable_segments:False")
+        # torch.npu.memory._set_allocator_settings("expandable_segments:False")
 
         if "disable_log_stats" not in kwargs:
             kwargs["disable_log_stats"] = True

@@ -39,7 +39,7 @@ def tensor_to_cpu_visitor(obj, path):
 def tensor_to_cuda_visitor(obj, path):
     if torch.is_tensor(obj):
         if not obj.is_cuda:
-            obj.data = obj.data.detach().to(device=torch.device("cuda"))
+            obj.data = obj.data.detach().to(device=torch.device("npu"))
         return True
     return False
 

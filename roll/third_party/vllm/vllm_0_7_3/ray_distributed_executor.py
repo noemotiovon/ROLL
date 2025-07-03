@@ -111,13 +111,13 @@ class CustomRayDistributedExecutor(RayDistributedExecutor):
             runtime_env = RuntimeEnv(
                 env_vars={
                     "PYTORCH_CUDA_ALLOC_CONF" : "",
-                    "CUDA_VISIBLE_DEVICES": f"{gpu_rank}",
-                    "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES": "1",
+                    "ASCEND_RT_VISIBLE_DEVICES": f"{gpu_rank}",
+                    "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES": "1",
                 }
             )
             worker = ray.remote(
                 num_cpus=0,
-                num_gpus=0.01,
+                resources={"NPU": 0.01},
                 runtime_env=runtime_env,
                 scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg, ),
                 **ray_remote_kwargs,

@@ -45,8 +45,8 @@ def test_hf_multi_gpus_cpu_offload_with_hook():
     for i, batch in tqdm(enumerate(dataloader)):
         print(f"step: {i}")
 
-        input_ids = batch["input_ids"].to("cuda")
-        attention_mask = batch["attention_mask"].to("cuda")
+        input_ids = batch["input_ids"].to("npu")
+        attention_mask = batch["attention_mask"].to("npu")
         output = model.generate(
             input_ids,
             attention_mask=attention_mask,
@@ -83,8 +83,8 @@ def test_hf_multi_gpus_cpu_offload_hf_device_map():
     for i, batch in tqdm(enumerate(dataloader)):
         print(f"step: {i}")
 
-        input_ids = batch["input_ids"].to("cuda")
-        attention_mask = batch["attention_mask"].to("cuda")
+        input_ids = batch["input_ids"].to("npu")
+        attention_mask = batch["attention_mask"].to("npu")
         output = model.generate(
             input_ids,
             attention_mask=attention_mask,

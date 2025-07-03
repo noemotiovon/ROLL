@@ -60,7 +60,7 @@ class Qwen2VLRotaryEmbedding(nn.Module):
         self.rotary_interleaved = rotary_interleaved
 
         self.seq_len_interpolation_factor = seq_len_interpolation_factor
-        device = "cpu" if use_cpu_initialization else torch.cuda.current_device()
+        device = "cpu" if use_cpu_initialization else torch.npu.current_device()
         self.inv_freq = 1.0 / (rotary_base ** (torch.arange(0, dim, 2, dtype=torch.float32, device=device) / dim))
 
     @torch.no_grad()
@@ -202,7 +202,7 @@ class Qwen2VLModel(Qwen2VLBaseModel, ModuleUtilsMixin):
                 Qwen2VLVisionConfig(**config.vision_config),
                 attn_implementation="sdpa",
                 torch_dtype=self.config.params_dtype,
-            ).to(torch.cuda.current_device())
+            ).to(torch.npu.current_device())
             for param in self.vision_model.parameters():
                 setattr(param, "sequence_parallel", config.sequence_parallel)
 

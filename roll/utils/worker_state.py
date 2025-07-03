@@ -62,7 +62,7 @@ class WorkerState:
             "python": random.getstate(),
             "numpy": np.random.get_state(),
             "cpu": torch.random.get_rng_state(),
-            "cuda": torch.cuda.random.get_rng_state_all(),
+            "npu": torch.npu.random.get_rng_state_all(),
         }
         os.makedirs(save_dir, exist_ok=True)
         torch.save(rng_states, os.path.join(save_dir, f"rng_state_{tag}.pth"))
@@ -84,4 +84,4 @@ class WorkerState:
         random.setstate(checkpoint_rng_state["python"])
         np.random.set_state(checkpoint_rng_state["numpy"])
         torch.random.set_rng_state(checkpoint_rng_state["cpu"])
-        torch.cuda.random.set_rng_state_all(checkpoint_rng_state["cuda"])
+        torch.npu.random.set_rng_state_all(checkpoint_rng_state["npu"])

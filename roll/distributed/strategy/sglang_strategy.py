@@ -77,11 +77,11 @@ class SgLangStrategy(InferenceStrategy):
         set_seed(seed=self.worker.pipeline_config.seed)
         self.command_queue = queue.Queue()
 
-        dist.init_process_group(backend="nccl", timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.init_process_group(backend="hccl", timeout=timedelta(minutes=self.worker_config.backend_timeout))
+        dist.all_reduce(torch.zeros(1).npu())
 
         sglang_config = copy.deepcopy(self.worker_config.strategy_args.strategy_config)
-        tp_size = sglang_config.pop("tensor_parallel_size", torch.cuda.device_count())
+        tp_size = sglang_config.pop("tensor_parallel_size", torch.npu.device_count())
 
         dp_rank = dist.get_rank()
         dp_size = dist.get_world_size()
@@ -254,7 +254,7 @@ class SgLangStrategy(InferenceStrategy):
             self.model.release_memory_state = True
 
     # 参数同步相关接口
-    def setup_collective_group(self, comm_plan, backend="nccl"):
+    def setup_collective_group(self, comm_plan, backend="hccl"):
         self.model.setup_collective_group(comm_plan=comm_plan, backend=backend, rank_in_cluster=self.worker.rank)
 
     def broadcast_parameter(self, src_pp_rank, dtype, shape, parameter_name):
@@ -283,7 +283,7 @@ class SgLangStrategy(InferenceStrategy):
                 self.model.is_model_in_gpu = False
         self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
 
 def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Tensor):
@@ -291,7 +291,7 @@ def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Ten
     return gathered_input_ids
 
 
-def gather_outputs_to_pad_tensor(request_outputs, pad_token_id, device="cuda") -> torch.Tensor:
+def gather_outputs_to_pad_tensor(request_outputs, pad_token_id, device="npu") -> torch.Tensor:
     token_ids_list_of_lists = [
         torch.tensor(request_output["output_ids"], device=device) for request_output in request_outputs
     ]

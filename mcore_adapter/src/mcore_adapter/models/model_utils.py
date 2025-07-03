@@ -91,7 +91,7 @@ class ModuleUtilsMixin:
 class RMSNorm(nn.Module):
     def __init__(self, config: "TransformerConfig", hidden_size, eps=1e-6, **kwargs):
         super().__init__()
-        device = torch.cuda.current_device() if not config.use_cpu_initialization else None
+        device = torch.npu.current_device() if not config.use_cpu_initialization else None
         self.weight = torch.nn.Parameter(torch.ones(hidden_size, dtype=config.params_dtype, device=device))
         self.variance_epsilon = eps
 

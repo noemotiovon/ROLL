@@ -213,7 +213,7 @@ class DataProto:
         batch_deserialized, non_tensor_batch, meta_info = data
         batch_deserialized.seek(0)
         batch = torch.load(
-            batch_deserialized, weights_only=False, map_location="cpu" if not torch.cuda.is_available() else None
+            batch_deserialized, weights_only=False, map_location="cpu" if not torch.npu.is_available() else None
         )
         self.batch = batch
         self.non_tensor_batch = non_tensor_batch

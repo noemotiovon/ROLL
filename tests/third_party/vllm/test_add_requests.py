@@ -41,7 +41,7 @@ def test():
     sampling_params = SamplingParams(temperature=0.1, top_p=0.99, top_k=100, max_tokens=512, n=TOTAL)
 
     MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: int = 100000
-    torch.cuda.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
+    torch.npu.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
 
     model = LLM(
         resource_placement_groups=placement_groups[0],

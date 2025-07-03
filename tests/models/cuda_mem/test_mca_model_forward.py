@@ -54,7 +54,7 @@ megatron_train_args = TrainingArguments(
 model_args = ModelArguments(model_name_or_path=path, flash_attn="fa2", dtype="bf16")
 
 MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: int = 100000
-torch.cuda.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
+torch.npu.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
 
 
 initialize_megatron(args=megatron_train_args)
@@ -74,18 +74,18 @@ prompts = [
 ]
 batch = tokenizer(prompts, return_tensors="pt", padding=True)
 model = model.to("cpu")
-torch.cuda.empty_cache()
+torch.npu.empty_cache()
 log_gpu_memory_usage(head="initialize offload")
 
-model = model.to("cuda")
+model = model.to("npu")
 
 
 def forward_func(output_tensor):
-    return torch.Tensor([1]).cuda(), {}
+    return torch.Tensor([1]).npu(), {}
 
 
 def forward_step_func(data_iterator, module):
-    input_ids = batch["input_ids"].to("cuda")
+    input_ids = batch["input_ids"].to("npu")
     input_ids = pad_to_length(tensor=input_ids, length=seq_len, pad_value=tokenizer.pad_token_id)
     output = module(input_ids=input_ids, attention_mask=None, position_ids=None)
     return output, forward_func
@@ -124,22 +124,22 @@ for model_chunk in model.get_models():
                 layer.mlp.token_dispatcher.local_map = None
                 layer.mlp.token_dispatcher.local_probs = None
                 layer.mlp.token_dispatcher.reversed_local_input_permutation_mapping = None
-t0 = torch.randint(0, 100, (1024, 1024, 1024), device="cuda")
+t0 = torch.randint(0, 100, (1024, 1024, 1024), device="npu")
 del model, t0
 
 RotaryEmbedding.forward.cache_clear()
 te_base._cublas_workspace = None
 te_attention._cu_seqlens_cache.clear()
 gc.collect()
-torch.cuda.empty_cache()
+torch.npu.empty_cache()
 log_gpu_memory_usage(head=f"forward offload rank: {dist.get_rank()}")
 
 print(f"dist.get_rank(): {dist.get_rank()}")
 
 dump_file = f"./memory_dump/mem_debug_{os.environ['RANK']}.pickle"
 os.makedirs(os.path.dirname(dump_file), exist_ok=True)
-torch.cuda.memory._dump_snapshot(dump_file)
-torch.cuda.memory._record_memory_history(enabled=None)
+torch.npu.memory._dump_snapshot(dump_file)
+torch.npu.memory._record_memory_history(enabled=None)
 
 time.sleep(600)
 """

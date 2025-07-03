@@ -75,7 +75,7 @@ class StackedTensors:
 
 
 class TensorBucket:
-    def __init__(self, bucket_size, device="cuda"):
+    def __init__(self, bucket_size, device="npu"):
         self.buffer = torch.empty(bucket_size, dtype=torch.int8, device=device)
         self.device = device
         self.bucket_size = bucket_size

@@ -75,7 +75,7 @@ def init_collective_group(
     rank: int,
     master_addr: str,
     master_port: int,
-    backend: Union[str, Backend] = "nccl",
+    backend: Union[str, Backend] = "hccl",
     group_name: str = "default",
 ):
     global _group_mgr

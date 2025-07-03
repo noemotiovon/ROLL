@@ -80,10 +80,10 @@ def set_accelerator_visible():
         xdist_worker_id = 0
     if cuda_visible is None:
         # CUDA_VISIBLE_DEVICES is not set, discover it using accelerator specific command instead
-        if get_accelerator().device_name() == "cuda":
+        if get_accelerator().device_name() == "npu":
             if is_rocm_pytorch():
                 rocm_smi = subprocess.check_output(["rocm-smi", "--showid"])
-                gpu_ids = filter(lambda s: "GPU" in s, rocm_smi.decode("utf-8").strip().split("\n"))
+                gpu_ids = filter(lambda s: "NPU" in s, rocm_smi.decode("utf-8").strip().split("\n"))
                 num_accelerators = len(list(gpu_ids))
             else:
                 nvidia_smi = subprocess.check_output(["nvidia-smi", "--list-gpus"])

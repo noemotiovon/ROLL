@@ -32,8 +32,8 @@ def test_load_generate():
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    device = "cuda"
+    torch.npu.manual_seed_all(seed)
+    device = "npu"
 
     model_name = "Qwen/Qwen2.5-0.5B-Instruct"
     data_filename = "data/comparison_gpt4_data_zh.json"

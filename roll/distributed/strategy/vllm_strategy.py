@@ -253,10 +253,10 @@ class VllmStrategy(InferenceStrategy):
             self.model.offload_states()
         self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
     # 参数同步相关接口
-    def setup_collective_group(self, comm_plan, backend="nccl"):
+    def setup_collective_group(self, comm_plan, backend="hccl"):
         self.model.setup_collective_group(comm_plan=comm_plan, backend=backend, rank_in_cluster=self.worker.rank)
 
     def broadcast_parameter(self, src_pp_rank, dtype, shape, parameter_name):
@@ -277,7 +277,7 @@ def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Ten
     return gathered_input_ids
 
 
-def gather_outputs_to_pad_tensor(request_outputs: List["RequestOutput"], pad_token_id, device="cuda") -> torch.Tensor:
+def gather_outputs_to_pad_tensor(request_outputs: List["RequestOutput"], pad_token_id, device="npu") -> torch.Tensor:
     token_ids_list_of_lists = [
         torch.tensor(completion_output.token_ids, device=device)
         for request_output in request_outputs

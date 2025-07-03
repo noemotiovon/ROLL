@@ -525,7 +525,7 @@ class TestOffloadStates(DistributedTest):
             optimizer_cls = DeepSpeedCPUAdam
 
         MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: int = 100000
-        torch.cuda.memory._record_memory_history(
+        torch.npu.memory._record_memory_history(
             max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT,
         )
 
@@ -573,9 +573,9 @@ class TestOffloadStates(DistributedTest):
         )
 
         if dist.get_rank() == 0:
-            t0 = torch.randint(0, 100, (1024, 1024), device="cuda")
-            t1 = torch.randint(0, 100, (1024, 1024), device="cuda")
-            t2 = torch.randint(0, 100, (1024, 1024), device="cuda")
+            t0 = torch.randint(0, 100, (1024, 1024), device="npu")
+            t1 = torch.randint(0, 100, (1024, 1024), device="npu")
+            t2 = torch.randint(0, 100, (1024, 1024), device="npu")
 
             tensor_list = [t0, t1, t2]
             tensor_meta_list = [torch.zeros_like(t, device="meta") for t in tensor_list]
@@ -597,5 +597,5 @@ class TestOffloadStates(DistributedTest):
                 f"{stage}_{optimizer_offload}_{partial_param}_{with_optim_params}_{os.environ['RANK']}.pickle"
             )
             os.makedirs(os.path.dirname(dump_file), exist_ok=True)
-            torch.cuda.memory._dump_snapshot(dump_file)
-            torch.cuda.memory._record_memory_history(enabled=None)
+            torch.npu.memory._dump_snapshot(dump_file)
+            torch.npu.memory._record_memory_history(enabled=None)

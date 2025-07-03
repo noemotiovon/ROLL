@@ -52,7 +52,7 @@ placement_groups = resource_manager.allocate_placement_group(world_size=1, devic
 sampling_params = SamplingParams(temperature=0.0, top_p=0.99, top_k=100, max_tokens=512)
 
 MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT: int = 100000
-torch.cuda.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
+torch.npu.memory._record_memory_history(max_entries=MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT, stacks="python")
 
 model = LLM(
     resource_placement_groups=placement_groups[0],
@@ -75,14 +75,14 @@ vllm_outputs = model.generate(
 #
 # print(vllm_outputs)
 model.offload_states()
-t0 = torch.randint(0, 100, (1024, 1024, 1024), device="cuda")
+t0 = torch.randint(0, 100, (1024, 1024, 1024), device="npu")
 del t0
 gc.collect()
-torch.cuda.empty_cache()
+torch.npu.empty_cache()
 dump_file = f"./memory_dump/vllm_dump.pickle"
 os.makedirs(os.path.dirname(dump_file), exist_ok=True)
-torch.cuda.memory._dump_snapshot(dump_file)
-torch.cuda.memory._record_memory_history(enabled=None)
+torch.npu.memory._dump_snapshot(dump_file)
+torch.npu.memory._record_memory_history(enabled=None)
 print("sleep")
 time.sleep(3600)
 ray.shutdown()

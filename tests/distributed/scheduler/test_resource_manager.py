@@ -58,7 +58,7 @@ def test_resource_manager():
         actor_list.append(
             TestResourceManagerActor.options(
                 scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg.placement_group),
-                num_gpus=0.01,
+                resources={"NPU": 0.01},
                 runtime_env=runtime_env,
             ).remote(rank=rank, world_size=world_size)
         )
@@ -92,7 +92,7 @@ def test_resource_manager_num_gpus_per_worker_gt_1():
         actor_list.append(
             TestResourceManagerActor.options(
                 scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg.placement_group),
-                num_gpus=0.01,
+                resources={"NPU": 0.01},
                 runtime_env=runtime_env,
             ).remote(rank=rank, world_size=world_size)
         )

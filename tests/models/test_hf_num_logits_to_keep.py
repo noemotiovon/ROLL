@@ -38,8 +38,8 @@ def hf_forward_logprobs():
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    device = "cuda"
+    torch.npu.manual_seed_all(seed)
+    device = "npu"
 
     model_name = "Qwen/Qwen2.5-7B-Instruct"
     print(f"model_name: {model_name}")

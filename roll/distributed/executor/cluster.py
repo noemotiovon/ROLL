@@ -127,8 +127,8 @@ class Cluster:
             if deploy_pg["gpu_rank"] is not None:
                 env_vars.update(
                     {
-                        "CUDA_VISIBLE_DEVICES": ",".join(map(str, pg_zero_gpu_ranks)),
-                        "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES": "1",
+                        "ASCEND_RT_VISIBLE_DEVICES": ",".join(map(str, pg_zero_gpu_ranks)),
+                        "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES": "1",
                     }
                 )
             if "ROLL_LOG_DIR" in os.environ:
@@ -143,7 +143,7 @@ class Cluster:
                 namespace=RAY_NAMESPACE,
                 runtime_env=runtime_env,
                 num_cpus=0.01,
-                num_gpus=0.01 if self.worker_config.device_mapping else 0,
+                resources={"NPU": 0.01 if self.worker_config.device_mapping else 0}
             ).remote(worker_config=self.worker_config)
             self.workers.append(worker)
             if rank == 0:

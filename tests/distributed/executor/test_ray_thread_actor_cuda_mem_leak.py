@@ -21,8 +21,8 @@ from roll.distributed.scheduler.initialize import init
 
 
 def log_gpu_memory_usage(head: str):
-    memory_allocated = torch.cuda.memory_allocated() / 1024**3
-    memory_reserved = torch.cuda.memory_reserved() / 1024**3
+    memory_allocated = torch.npu.memory_allocated() / 1024**3
+    memory_reserved = torch.npu.memory_reserved() / 1024**3
     message = f"{head}, memory allocated (GB): {memory_allocated}, memory reserved (GB): {memory_reserved}"
     print(message)
     return memory_allocated, memory_reserved
@@ -37,14 +37,14 @@ class ComputeTensorActor:
         torch.manual_seed(0)
 
         tensor_size = (1024, 1024)
-        tensor = torch.randn(tensor_size, device="cuda")
-        tensor_list = [torch.randn(tensor_size, device="cuda") for _ in range(num * 100)]
+        tensor = torch.randn(tensor_size, device="npu")
+        tensor_list = [torch.randn(tensor_size, device="npu") for _ in range(num * 100)]
 
         for _ in range(num):
-            other_tensor = torch.randn(tensor_size, device="cuda")
+            other_tensor = torch.randn(tensor_size, device="npu")
             tensor = torch.mm(tensor, other_tensor)
             tensor = torch.relu(tensor)
-            tensor += 0.1 * torch.randn(tensor_size, device="cuda")
+            tensor += 0.1 * torch.randn(tensor_size, device="npu")
 
         metrics = {}
         memory_allocated, memory_reserved = log_gpu_memory_usage(head=f"{self.name} before empty cache")
@@ -55,7 +55,7 @@ class ComputeTensorActor:
 
         gc.collect()
         torch._C._cuda_clearCublasWorkspaces()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
         memory_allocated, memory_reserved = log_gpu_memory_usage(head=f"{self.name} after empty cache")
         metrics["offload/memory_allocated"] = memory_allocated

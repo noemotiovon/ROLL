@@ -15,7 +15,8 @@ import gc
 from typing import Optional
 
 import torch
-from vllm.worker.worker import Worker
+# from vllm.worker.worker import Worker
+from vllm_ascend.worker.worker import NPUWorker as Worker
 
 from roll.third_party.vllm.worker_helper import WorkerHelper
 from roll.utils.logging import get_logger
@@ -50,4 +51,4 @@ class Worker084(Worker, WorkerHelper):
         if hasattr(self, 'recv_manager'):
             self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()

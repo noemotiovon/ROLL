@@ -278,7 +278,7 @@ class McaGPTModel(GPTModel, PretrainedModel):
         for param in self.parameters():
             tensor_parallel.set_defaults_if_not_set_tensor_model_parallel_attributes(param)
         if not config.use_cpu_initialization:
-            self.cuda(torch.cuda.current_device())
+            self.cuda(torch.npu.current_device())
 
     def _get_transformer_layer_spec(self, config: Optional["McaModelConfig"]=None):
         config = config or self.config

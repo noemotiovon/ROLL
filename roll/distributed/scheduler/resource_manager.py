@@ -28,13 +28,13 @@ class ResourceManager:
             facilitating Ray to deploy Actors on specified GPU devices.
         """
         available_resources = ray.available_resources()
-        available_gpu = available_resources.get("GPU", 0)
+        available_gpu = available_resources.get("NPU", 0)
 
         nodes_maybe_used = []
         ray_nodes = ray.nodes()
         for node in ray_nodes:
             resource = node["Resources"]
-            node_gpu_num = int(resource.get("GPU", 0))
+            node_gpu_num = int(resource.get("NPU", 0))
             if node_gpu_num >= num_gpus_per_node:
                 nodes_maybe_used.append(node)
         nodes_maybe_used = sorted(nodes_maybe_used, key=lambda n: n["Resources"]["CPU"])
@@ -55,13 +55,17 @@ class ResourceManager:
             for i in range(self.num_nodes):
                 node = nodes_maybe_used[i]
                 node_cpu = int(node["Resources"]["CPU"])
-                bundles.append({"GPU": self.gpu_per_node, "CPU": max(node_cpu / 2, 1)})
+                bundles.append({"NPU": self.gpu_per_node, "CPU": max(node_cpu / 2, 1)})
 
             self.placement_groups = [ray.util.placement_group([bundle]) for bundle in bundles]
             ray.get([pg.ready() for pg in self.placement_groups])
             gpu_ranks = ray.get(
                 [
-                    get_visible_gpus.options(placement_group=pg, num_gpus=self.gpu_per_node).remote()
+                    get_visible_gpus.options(
+                        placement_group=pg,
+                        resources={"NPU": self.gpu_per_node},  # 假如你还没重命名变量
+                        num_cpus=1
+                    ).remote()
                     for pg in self.placement_groups
                 ]
             )

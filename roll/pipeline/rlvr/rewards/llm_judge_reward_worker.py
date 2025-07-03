@@ -103,8 +103,8 @@ class LLMJudgeRewardWorker(Worker):
         text = chat_template_func(messages)
 
         tokenized = self.tokenizer(text, return_tensors="pt")
-        input_ids = tokenized["input_ids"].to("cuda")
-        attention_mask = tokenized["attention_mask"].to("cuda")
+        input_ids = tokenized["input_ids"].to("npu")
+        attention_mask = tokenized["attention_mask"].to("npu")
 
         generation_config = self.worker_config.generating_args.to_dict()
         generation_config["eos_token_id"] = [self.tokenizer.eos_token_id]
@@ -113,7 +113,7 @@ class LLMJudgeRewardWorker(Worker):
         data = DataProto(
             batch=TensorDict({"input_ids": input_ids, "attention_mask": attention_mask}, batch_size=input_ids.shape[0])
         )
-        data = data.to("cuda")
+        data = data.to("npu")
         data.meta_info = {"micro_batch_size": self.worker_config.infer_batch_size}
 
         with torch.no_grad():

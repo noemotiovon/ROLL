@@ -84,10 +84,10 @@ class TestActor:
         self.model.offload_states()
         import torch
 
-        print(f"memory allocated: {torch.cuda.memory_allocated() / 1024 ** 3}")
+        print(f"memory allocated: {torch.npu.memory_allocated() / 1024 ** 3}")
 
-        # use torch.cuda.mem_get_info()[0] in sleep mode: https://github.com/vllm-project/vllm/pull/11743
-        print(f"free: {torch.cuda.mem_get_info()[0] / 1024 ** 3}")
+        # use torch.npu.mem_get_info()[0] in sleep mode: https://github.com/vllm-project/vllm/pull/11743
+        print(f"free: {torch.npu.mem_get_info()[0] / 1024 ** 3}")
         import pdb
 
         pdb.set_trace()
@@ -122,7 +122,7 @@ actor = TestActor.options(
     name="actor",
     runtime_env=runtime_env,
     num_cpus=0.01,
-    num_gpus=0.01,
+    resources={"NPU": 0.01},
 ).remote(placement_groups=placement_groups)
 ray.get(actor.run.remote())
 

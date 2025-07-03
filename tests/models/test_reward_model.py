@@ -37,10 +37,10 @@ def reward_model_forward():
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    device = "cuda"
+    torch.npu.manual_seed_all(seed)
+    device = "npu"
 
-    gpu_name = torch.cuda.get_device_name()
+    gpu_name = torch.npu.get_device_name()
 
     model_name = "model.alimama_nebula2.reward_model/version=rm_qwen2_5_7B_trl/ckpt_id=checkpoint-1000"
 

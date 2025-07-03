@@ -51,7 +51,7 @@ def read_metadata(tracker_filename):
 
     # # Get the max iteration retrieved across the ranks.
     # if torch.distributed.is_initialized():
-    #     iters_cuda = torch.tensor([iteration], dtype=torch.long, device="cuda")
+    #     iters_cuda = torch.tensor([iteration], dtype=torch.long, device="npu")
     #     torch.distributed.all_reduce(iters_cuda, op=torch.distributed.ReduceOp.MAX)
     #     max_iter = iters_cuda[0].item()
 

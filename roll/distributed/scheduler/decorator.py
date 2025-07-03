@@ -265,9 +265,9 @@ def register(dispatch_mode=Dispatch.ALL_TO_ALL, execute_mode=Execute.ALL, clear_
                 result = func(*args, **kwargs)
                 if clear_cache:
                     try:
-                        torch._C._cuda_clearCublasWorkspaces()
+                        # torch._C._cuda_clearCublasWorkspaces()
                         gc.collect()
-                        torch.cuda.empty_cache()
+                        torch.npu.empty_cache()
                     except Exception as oe:
                         pass
 

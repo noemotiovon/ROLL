@@ -224,7 +224,7 @@ class MegatronInferStrategy(InferenceStrategy):
         if include is None or OffloadStateType.model_params in include:
             offload_megatron_no_grad_module(model_chunks=self.model.get_models())
         RotaryEmbedding.forward.cache_clear()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
     def op_compute_log_probs(self, logits: torch.Tensor, input_ids: torch.Tensor, attention_mask: torch.Tensor):
         """
@@ -485,7 +485,7 @@ class MegatronTrainStrategy(MegatronInferStrategy, TrainStrategy):
             include = include_states
         self.optimizer.offload_states(include=include, non_blocking=non_blocking, pin_memory=pin_memory)
         RotaryEmbedding.forward.cache_clear()
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
     def save_checkpoint(self, save_dir, global_step, ckpt_id, tag="checkpoint", **kwargs):
         logger.info(f"save_dir: {save_dir}")
@@ -535,7 +535,7 @@ class MegatronTrainStrategy(MegatronInferStrategy, TrainStrategy):
             "random_rng_state": random.getstate(),
             "np_rng_state": np.random.get_state(),
             "torch_rng_state": torch.get_rng_state(),
-            "cuda_rng_state": torch.cuda.get_rng_state(),
+            "cuda_rng_state": torch.npu.get_rng_state(),
             "rng_tracker_states": tensor_parallel.get_cuda_rng_tracker().get_states(),
         }
         rgn_path = os.path.join(save_dir, RNG_STATE_DIR, f"rng_state_{dist.get_rank()}.pth")
@@ -599,7 +599,7 @@ class MegatronTrainStrategy(MegatronInferStrategy, TrainStrategy):
             random.setstate(checkpoint_rng_state["random_rng_state"])
             np.random.set_state(checkpoint_rng_state["np_rng_state"])
             torch.set_rng_state(checkpoint_rng_state["torch_rng_state"])
-            torch.cuda.set_rng_state(checkpoint_rng_state["cuda_rng_state"])
+            torch.npu.set_rng_state(checkpoint_rng_state["cuda_rng_state"])
             # Check for empty states array
             if not checkpoint_rng_state["rng_tracker_states"]:
                 raise KeyError

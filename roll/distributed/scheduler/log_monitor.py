@@ -188,6 +188,7 @@ class LogMonitorListener:
         self.node_ip_address = ray.util.get_node_ip_address()
         self.rank = get_driver_rank()
         self.world_size = get_driver_world_size()
+        print("lcg ====>>>>> ")
         self.log_monitor = LogMonitor(
             node_ip_address=self.node_ip_address,
             logs_dir=self.log_dir,
