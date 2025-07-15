@@ -18,6 +18,7 @@ from tensordict import TensorDict
 from torch.utils.data import DataLoader
 
 from roll.utils.functionals import union_two_dict, divide_by_chunk_size
+from roll.platforms import current_platform
 
 try:
     tensordict.set_lazy_legacy(False).set()
@@ -213,7 +214,7 @@ class DataProto:
         batch_deserialized, non_tensor_batch, meta_info = data
         batch_deserialized.seek(0)
         batch = torch.load(
-            batch_deserialized, weights_only=False, map_location="cpu" if not torch.cuda.is_available() else None
+            batch_deserialized, weights_only=False, map_location="cpu" if not current_platform.is_available() else None
         )
         self.batch = batch
         self.non_tensor_batch = non_tensor_batch

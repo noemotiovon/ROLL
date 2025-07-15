@@ -3,11 +3,18 @@ import os
 import ray
 
 
-@ray.remote(num_gpus=1)
-def get_visible_gpus():
-    return ray.get_gpu_ids()
+@ray.remote
+def get_visible_gpus(ray_device_key: str):
+    if ray_device_key == "GPU":
+        return ray.get_gpu_ids()
+    elif ray_device_key == "NPU":
+        visible_devices = os.getenv("ASCEND_RT_VISIBLE_DEVICES", "")
+        if visible_devices:
+            return list(map(int, visible_devices.split(",")))
+    else:
+        return []
 
 
-@ray.remote(num_gpus=1)
+@ray.remote
 def get_node_rank():
     return int(os.environ.get("NODE_RANK", "0"))

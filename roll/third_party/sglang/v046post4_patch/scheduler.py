@@ -17,6 +17,7 @@ import psutil
 import setproctitle
 import torch
 import zmq
+from roll.platforms import current_platform
 from sglang.srt.disaggregation.utils import (
     DisaggregationMode,
 )
@@ -394,7 +395,7 @@ class SchedulerSA(Scheduler):
         return ReleaseMemoryOccupationReqOutput()
     
     def resume_memory_occupation(self, recv_req: ResumeMemoryOccupationReqInput):
-        self.tp_worker.worker.model_runner.model.to(torch.cuda.current_device())
+        self.tp_worker.worker.model_runner.model.to(current_platform.current_device())
         self.memory_saver_adapter.resume()
 
         # gc.collect()

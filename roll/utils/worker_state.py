@@ -8,6 +8,7 @@ from typing import List, Dict, Optional, Union
 import numpy as np
 import torch
 
+from roll.platforms import current_platform
 from roll.utils.logging import logger
 
 
@@ -49,7 +50,7 @@ class WorkerState:
             "python": random.getstate(),
             "numpy": np.random.get_state(),
             "cpu": torch.random.get_rng_state(),
-            "cuda": torch.cuda.random.get_rng_state_all(),
+            current_platform.device_type: current_platform.random.get_rng_state_all(),
         }
         os.makedirs(save_dir, exist_ok=True)
         torch.save(rng_states, os.path.join(save_dir, f"rng_state_{tag}.pth"))
@@ -71,4 +72,4 @@ class WorkerState:
         random.setstate(checkpoint_rng_state["python"])
         np.random.set_state(checkpoint_rng_state["numpy"])
         torch.random.set_rng_state(checkpoint_rng_state["cpu"])
-        torch.cuda.random.set_rng_state_all(checkpoint_rng_state["cuda"])
+        current_platform.random.set_rng_state_all(checkpoint_rng_state[current_platform.device_type])

@@ -25,6 +25,7 @@ from .converter.convert_utils import MAX_SHARD_SIZE
 from .converter.model_converter import ModelConverter
 from .model_config import McaModelConfig
 from .model_utils import ModuleUtilsMixin, RMSNorm, exists_hf_config, exists_mca_config
+from roll.platforms import current_platform
 
 
 if TYPE_CHECKING:
@@ -278,7 +279,7 @@ class McaGPTModel(GPTModel, PretrainedModel):
         for param in self.parameters():
             tensor_parallel.set_defaults_if_not_set_tensor_model_parallel_attributes(param)
         if not config.use_cpu_initialization:
-            self.cuda(torch.cuda.current_device())
+            self.cuda(current_platform.current_device())
 
     def _get_transformer_layer_spec(self, config: Optional["McaModelConfig"]=None):
         config = config or self.config

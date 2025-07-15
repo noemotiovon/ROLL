@@ -27,6 +27,7 @@ from roll.distributed.strategy.strategy import InferenceStrategy
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
 from roll.utils.functionals import concatenate_input_and_output, GenerateRequestType
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -64,11 +65,11 @@ class SgLangStrategy(InferenceStrategy):
         set_seed(seed=self.worker.pipeline_config.seed)
         self.command_queue = queue.Queue()
 
-        dist.init_process_group(backend="nccl", timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.init_process_group(backend=current_platform.communication_backend, timeout=timedelta(minutes=self.worker_config.backend_timeout))
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         sglang_config = copy.deepcopy(self.worker_config.strategy_args.strategy_config)
-        tp_size = sglang_config.pop("tensor_parallel_size", torch.cuda.device_count())
+        tp_size = sglang_config.pop("tensor_parallel_size", current_platform.device_count())
 
         dp_rank = dist.get_rank()
         dp_size = dist.get_world_size()
@@ -241,7 +242,7 @@ class SgLangStrategy(InferenceStrategy):
             self.model.release_memory_state = True
 
     # 参数同步相关接口
-    def setup_collective_group(self, comm_plan, backend="nccl"):
+    def setup_collective_group(self, comm_plan, backend=current_platform.communication_backend):
         self.model.setup_collective_group(comm_plan=comm_plan, backend=backend, rank_in_cluster=self.worker.rank)
 
     def broadcast_parameter(self, src_pp_rank, dtype, shape, parameter_name):
@@ -270,7 +271,7 @@ class SgLangStrategy(InferenceStrategy):
                 self.model.is_model_in_gpu = False
         self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
 
 def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Tensor):
@@ -278,7 +279,7 @@ def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Ten
     return gathered_input_ids
 
 
-def gather_outputs_to_pad_tensor(request_outputs, pad_token_id, device="cuda") -> torch.Tensor:
+def gather_outputs_to_pad_tensor(request_outputs, pad_token_id, device=current_platform.device_type) -> torch.Tensor:
     token_ids_list_of_lists = [
         torch.tensor(request_output["output_ids"], device=device) for request_output in request_outputs
     ]
@@ -318,7 +319,7 @@ def compare_sampling_params(params1: dict, params2: dict) -> bool:
         "top_k",
         "max_new_tokens",
         "n",
-        "stop_token_ids", 
+        "stop_token_ids",
         "presence_penalty",
         "frequency_penalty",
         "repetition_penalty",

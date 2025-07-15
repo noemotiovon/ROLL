@@ -17,6 +17,7 @@ from roll.distributed.scheduler.decorator import (
     collect_all_to_all,
     dispatch_one_to_all,
 )
+from roll.platforms import current_platform
 from roll.utils.constants import RAY_NAMESPACE
 from roll.distributed.scheduler.resource_manager import ResourceManager
 from roll.utils.import_utils import safe_import_class
@@ -114,8 +115,8 @@ class Cluster:
             if deploy_pg["gpu_rank"] is not None:
                 env_vars.update(
                     {
-                        "CUDA_VISIBLE_DEVICES": ",".join(map(str, pg_zero_gpu_ranks)),
-                        "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES": "1",
+                        current_platform.device_control_env_var: ",".join(map(str, pg_zero_gpu_ranks)),
+                        current_platform.ray_experimental_noset: "1",
                     }
                 )
             if "ROLL_LOG_DIR" in os.environ:
@@ -124,14 +125,25 @@ class Cluster:
 
             runtime_env = RuntimeEnv(env_vars=env_vars)
             self.worker_config.resource_placement_groups = pgs
-            worker = self.worker_cls.options(
-                scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=deploy_pg["placement_group"]),
-                name=worker_name,
-                namespace=RAY_NAMESPACE,
-                runtime_env=runtime_env,
-                num_cpus=0.01,
-                num_gpus=0.01 if self.worker_config.device_mapping else 0,
-            ).remote(worker_config=self.worker_config)
+            if current_platform.ray_device_key == "GPU":
+                worker = self.worker_cls.options(
+                    scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=deploy_pg["placement_group"]),
+                    name=worker_name,
+                    namespace=RAY_NAMESPACE,
+                    runtime_env=runtime_env,
+                    num_cpus=0.01,
+                    num_gpus=0.01 if self.worker_config.device_mapping else 0,
+                ).remote(worker_config=self.worker_config)
+            else:
+                worker = self.worker_cls.options(
+                    scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=deploy_pg["placement_group"]),
+                    name=worker_name,
+                    namespace=RAY_NAMESPACE,
+                    runtime_env=runtime_env,
+                    num_cpus=0.01,
+                    num_gpus=0,
+                    resources={current_platform.ray_device_key: 0.01 if self.worker_config.device_mapping else 0},
+                ).remote(worker_config=self.worker_config)
             self.workers.append(worker)
             if rank == 0:
                 self.master_addr, self.master_port = ray.get(worker.get_master_addr_and_port.remote())

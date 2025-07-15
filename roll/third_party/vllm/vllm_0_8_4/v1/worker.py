@@ -2,7 +2,7 @@ import gc
 from typing import Optional
 
 import torch
-from vllm.v1.worker.gpu_worker import Worker
+from roll.platforms import current_platform
 from vllm.device_allocator.cumem import CuMemAllocator
 
 from roll.third_party.vllm.worker_helper import WorkerHelper
@@ -11,6 +11,7 @@ from roll.utils.send_recv_utils import RecvBucketManager
 
 logger = get_logger()
 
+Worker = current_platform.get_vllm_worker_class()
 
 class Worker084(WorkerHelper, Worker):
     def __init__(self, *args, **kwargs):

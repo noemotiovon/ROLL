@@ -58,8 +58,13 @@ def init():
     master_port = get_driver_master_port()
 
     manual_start = start_ray_cluster()
+    pythonpath = os.environ.get("PYTHONPATH", "")
+
     runtime_env = {
-        "env_vars": default_envs
+        "env_vars": {
+            **default_envs,
+            "PYTHONPATH": pythonpath
+        }
     }
 
     if not ray.is_initialized():

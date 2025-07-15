@@ -6,6 +6,7 @@ import torch
 
 import cloudpickle
 
+from roll.platforms import current_platform
 from vllm import LLM, SamplingParams, EngineArgs, envs
 from vllm.usage.usage_lib import UsageContext
 from vllm.utils import Counter
@@ -61,7 +62,7 @@ class Llm084(LLM):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ""
         # torch.cuda may already init, explicitly disable expandable_segments
         # here (only matters when VLLM_USE_RAY_SPMD_WORKER=0)
-        torch.cuda.memory._set_allocator_settings("expandable_segments:False")
+        current_platform.set_allocator_settings()
 
         if "disable_log_stats" not in kwargs:
             kwargs["disable_log_stats"] = True
