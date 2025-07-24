@@ -5,7 +5,6 @@ import time
 
 import ray
 
-from roll.distributed.scheduler import default_envs
 from roll.distributed.scheduler.driver_utils import (
     get_driver_rank,
     get_driver_master_addr,
@@ -19,6 +18,7 @@ from roll.distributed.scheduler.driver_utils import (
 from roll.distributed.scheduler.log_monitor import LogMonitorListener
 from roll.utils.constants import RAY_NAMESPACE
 from roll.utils.logging import get_logger
+from roll.utils.ray_utils import RayUtils
 
 logger = get_logger()
 
@@ -58,13 +58,8 @@ def init():
     master_port = get_driver_master_port()
 
     manual_start = start_ray_cluster()
-    pythonpath = os.environ.get("PYTHONPATH", "")
-
     runtime_env = {
-        "env_vars": {
-            **default_envs,
-            "PYTHONPATH": pythonpath
-        }
+        "env_vars": RayUtils.get_custom_env_env_vars(),
     }
 
     if not ray.is_initialized():

@@ -16,7 +16,7 @@ from roll.utils.constants import RAY_NAMESPACE, STORAGE_NAME
 from roll.utils.context_managers import state_offload_manger
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
-from roll.platforms import current_platform
+from roll.utils.ray_utils import RayUtils
 
 
 @dataclass
@@ -119,7 +119,7 @@ class Worker:
 
     @staticmethod
     def get_visible_gpus():
-        return os.environ.get(current_platform.device_control_env_var, "").split(",")
+        return RayUtils.get_visible_gpus()
 
     def get_devices_info(self):
         devices_info = [
