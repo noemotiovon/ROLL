@@ -41,6 +41,12 @@ class RayUtils:
                 "TORCHINDUCTOR_COMPILE_THREADS": "2",
                 "PYTORCH_HIP_ALLOC_CONF": "expandable_segments:True",
             }
+        elif DeviceType.ASCEND == device_type:
+            env_vars = {
+                "TORCHINDUCTOR_COMPILE_THREADS": "2",
+                "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True",
+                "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+            }
         elif DeviceType.UNKNOWN == device_type:
             env_vars = {
                 "TORCHINDUCTOR_COMPILE_THREADS": "2",
@@ -59,6 +65,11 @@ class RayUtils:
                 "HIP_VISIBLE_DEVICES": ",".join(map(str, gpu_ranks)),
                 "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES": "1",
             }
+        elif DeviceType.ASCEND == device_type:
+            visible_devices_env_vars = {
+                "ASCEND_RT_VISIBLE_DEVICES": ",".join(map(str, gpu_ranks)),
+                "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES": "1",
+            }
         else:
             visible_devices_env_vars = {
                 "CUDA_VISIBLE_DEVICES": ",".join(map(str, gpu_ranks)),
@@ -73,6 +84,8 @@ class RayUtils:
             device_type = GPUUtils.get_device_type()
         if DeviceType.AMD == device_type:
             return os.environ.get("HIP_VISIBLE_DEVICES", "").split(",")
-        if DeviceType.NVIDIA == device_type or DeviceType.UNKNOWN == device_type:
+        elif DeviceType.ASCEND == device_type:
+            return os.environ.get("ASCEND_RT_VISIBLE_DEVICES", "").split(",")
+        elif DeviceType.NVIDIA == device_type or DeviceType.UNKNOWN == device_type:
             return os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",")
         return []

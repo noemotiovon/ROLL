@@ -17,6 +17,7 @@ from roll.utils.context_managers import state_offload_manger
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
 from roll.utils.ray_utils import RayUtils
+from roll.platforms import current_platform
 
 
 @dataclass
