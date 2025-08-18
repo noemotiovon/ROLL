@@ -36,6 +36,7 @@ from transformers.trainer_utils import (
     seed_worker,
     speed_metrics,
 )
+from roll.platforms import current_platform
 
 from ..checkpointing import get_checkpoint_dir, load_state_dict_from_checkpoint
 from ..constants import DIST_OPTIMIZER_DIR, IGNORE_INDEX
@@ -501,7 +502,7 @@ class McaTrainer(Trainer):
             "random_rng_state": random.getstate(),
             "np_rng_state": np.random.get_state(),
             "torch_rng_state": torch.get_rng_state(),
-            "cuda_rng_state": torch.cuda.get_rng_state(),
+            "cuda_rng_state": current_platform.get_rng_state(),
             "rng_tracker_states": tensor_parallel.get_cuda_rng_tracker().get_states(),
         }
         if self.args.world_size <= 1:
@@ -537,7 +538,7 @@ class McaTrainer(Trainer):
         random.setstate(checkpoint_rng_state["random_rng_state"])
         np.random.set_state(checkpoint_rng_state["np_rng_state"])
         torch.set_rng_state(checkpoint_rng_state["torch_rng_state"])
-        torch.cuda.set_rng_state(checkpoint_rng_state["cuda_rng_state"])
+        current_platform.set_rng_state(checkpoint_rng_state["cuda_rng_state"])
         # Check for empty states array
         if not checkpoint_rng_state["rng_tracker_states"]:
             raise KeyError

@@ -15,9 +15,9 @@ from vllm.executor.ray_utils import RayWorkerWrapper
 from vllm.model_executor.layers.sampler import SamplerOutput
 from vllm.platforms import current_platform
 from vllm.utils import make_async, get_ip, get_distributed_init_method, get_open_port
-from roll.utils.ray_utils import RayUtils
 
 from roll.utils.logging import get_logger
+from roll.platforms import current_platform as roll_current_platform
 
 logger = get_logger()
 
@@ -107,17 +107,27 @@ class CustomRayDistributedExecutor(RayDistributedExecutor):
             pg = placement_group[rank]['placement_group']
             gpu_rank = placement_group[rank]['gpu_rank']
             # TODO do not override other options in PYTORCH_CUDA_ALLOC_CONF
-            runtime_env = RuntimeEnv(env_vars=RayUtils.get_vllm_run_time_env_vars(gpu_rank))
+            runtime_env = RuntimeEnv(env_vars=roll_current_platform.get_vllm_run_time_env_vars(gpu_rank))
             assert current_platform.ray_device_key == "GPU"
             # NV+AMD GPUs, and Intel XPUs
-            worker = ray.remote(
-                num_cpus=0,
-                num_gpus=0.01,
-                runtime_env=runtime_env,
-                scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg, ),
-                **ray_remote_kwargs,
-            )(RayWorkerWrapper).remote(vllm_config=self.vllm_config,
-                                       rpc_rank=rank)
+            if current_platform.ray_device_key == "GPU":
+                worker = ray.remote(
+                    num_cpus=0,
+                    num_gpus=0.01,
+                    runtime_env=runtime_env,
+                    scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg, ),
+                    **ray_remote_kwargs,
+                )(RayWorkerWrapper).remote(vllm_config=self.vllm_config,
+                                            rpc_rank=rank)
+            else:
+                worker = ray.remote(
+                    num_cpus=0,
+                    num_gpus=0,
+                    resources={current_platform.ray_device_key: 0.01},
+                    scheduling_strategy=PlacementGroupSchedulingStrategy(placement_group=pg, ),
+                    **ray_remote_kwargs,
+                )(RayWorkerWrapper).remote(vllm_config=self.vllm_config,
+                                           rpc_rank=rank)            
             worker_metadata.append(
                 RayWorkerMetaData(worker=worker, created_rank=rank))
 

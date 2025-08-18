@@ -4,6 +4,7 @@ from torch._C._distributed_c10d import ReduceOp
 from torch.distributed import Backend
 import torch.distributed as dist
 
+from roll.platforms import current_platform
 from roll.utils.collective.pg_utils import init_custom_process_group
 from roll.utils.logging import get_logger
 
@@ -62,7 +63,7 @@ def init_collective_group(
     rank: int,
     master_addr: str,
     master_port: int,
-    backend: Union[str, Backend] = "nccl",
+    backend: Union[str, Backend] = current_platform.communication_backend,
     group_name: str = "default",
 ):
     global _group_mgr

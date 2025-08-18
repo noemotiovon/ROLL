@@ -4,6 +4,7 @@ import torch
 from megatron.core import mpu
 from megatron.core.transformer.attention import SelfAttention
 from torch import nn
+from roll.platforms import current_platform
 
 from ..auto.modeling_auto import register_model
 from ..model_factory import McaGPTModel
@@ -58,7 +59,7 @@ class Qwen2_5_VLRotaryEmbedding(nn.Module): # same as Qwen2_VL
         if rotary_percent < 1.0:
             dim = int(dim * rotary_percent)
 
-        device = "cpu" if use_cpu_initialization else torch.cuda.current_device()
+        device = "cpu" if use_cpu_initialization else current_platform.current_device()
         self.inv_freq = 1.0 / (rotary_base ** (torch.arange(0, dim, 2, dtype=torch.float32, device=device) / dim))
 
     @torch.no_grad()
@@ -199,7 +200,7 @@ class Qwen2_5_VLModel(Qwen2_5_VLBaseModel, ModuleUtilsMixin):
                 Qwen2_5_VLVisionConfig(**config.vision_config),
                 attn_implementation="flash_attention_2",
                 torch_dtype=self.config.params_dtype,
-            ).to(torch.cuda.current_device())
+            ).to(current_platform.current_device())
             for param in self.vision_model.parameters():
                 setattr(param, "sequence_parallel", config.sequence_parallel)
 

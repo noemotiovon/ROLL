@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from roll.platforms import current_platform
+
 import torch
 
 if TYPE_CHECKING:
@@ -62,7 +64,7 @@ class StackedTensors:
 
 
 class TensorBucket:
-    def __init__(self, bucket_size, device="cuda"):
+    def __init__(self, bucket_size, device=current_platform.device_type):
         self.buffer = torch.empty(bucket_size, dtype=torch.int8, device=device)
         self.device = device
         self.bucket_size = bucket_size

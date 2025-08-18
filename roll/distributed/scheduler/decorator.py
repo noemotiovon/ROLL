@@ -16,6 +16,7 @@ import asyncio
 
 from roll.distributed.scheduler.protocol import DataProto, ObjectRefWrap
 from roll.utils.logging import get_logger
+from roll.platforms import current_platform
 
 logger = get_logger()
 
@@ -274,9 +275,9 @@ def register(dispatch_mode=Dispatch.ALL_TO_ALL, execute_mode=Execute.ALL, clear_
                     result = await func(*args, **kwargs)
                     if clear_cache:
                         try:
-                            torch._C._cuda_clearCublasWorkspaces()
+                            current_platform.clear_cublas_workspaces()
                             gc.collect()
-                            torch.cuda.empty_cache()
+                            current_platform.empty_cache()
                         except Exception as oe:
                             pass
 
@@ -295,9 +296,9 @@ def register(dispatch_mode=Dispatch.ALL_TO_ALL, execute_mode=Execute.ALL, clear_
                     result = func(*args, **kwargs)
                     if clear_cache:
                         try:
-                            torch._C._cuda_clearCublasWorkspaces()
+                            current_platform.clear_cublas_workspaces()
                             gc.collect()
-                            torch.cuda.empty_cache()
+                            current_platform.empty_cache()
                         except Exception as oe:
                             pass
 

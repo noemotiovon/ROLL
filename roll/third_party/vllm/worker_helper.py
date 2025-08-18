@@ -10,6 +10,7 @@ from roll.utils.functionals import get_dist_info_from_comm_plan
 from roll.utils.logging import get_logger
 from roll.utils.send_recv_utils import RecvBucketManager
 from roll.third_party.vllm.vllm_utils import patch_vllm_moe_model_weight_loader
+from roll.platforms import current_platform
 
 logger = get_logger()
 
@@ -59,7 +60,7 @@ class WorkerHelper:
         if hasattr(self, 'recv_manager'):
             self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
     def setup_collective_group(self, comm_plan, backend, rank_in_cluster):
         self.model_update_comm_plan = getattr(self, "model_update_comm_plan", {})
@@ -76,7 +77,7 @@ class WorkerHelper:
         collective.init_collective_group(world_size, rank, backend=backend, group_name=group_name,
                                          master_addr=master_addr, master_port=master_port)
         # A small all_reduce for warmup.
-        collective.allreduce(torch.zeros(1).cuda(), group_name=group_name)
+        collective.allreduce(torch.zeros(1).to(current_platform.device_type), group_name=group_name)
         self.model_update_comm_plan[src_pp_rank] = dict(rank=rank,
                                                         world_size=world_size,
                                                         src_pp_rank=src_pp_rank,
@@ -89,7 +90,7 @@ class WorkerHelper:
         if src_pp_rank not in self.model_update_comm_plan:
             return
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        buffer = torch.empty(bucket_size, dtype=torch.int8, device="cuda")
+        buffer = torch.empty(bucket_size, dtype=torch.int8, device=current_platform.device_type)
         collective.broadcast(tensor=buffer, src_rank=0, group_name=comm_plan["group_name"])
         WorkerHelper.update_parameter_in_bucket(self, meta_infos, buffer, [dist.get_rank()])
 
@@ -97,7 +98,7 @@ class WorkerHelper:
         if src_pp_rank not in self.model_update_comm_plan:
             return
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device=current_platform.device_type)
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         WorkerHelper.update_parameter(self, parameter_name, weight, [dist.get_rank()], is_lora=is_lora)
 

@@ -26,6 +26,7 @@ from roll.utils.collective import collective
 from roll.utils.functionals import GenerateRequestType, concatenate_input_and_output
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -205,16 +206,12 @@ class VllmStrategy(InferenceStrategy):
                         gen_kwargs={**generation_config, "max_new_tokens": max_new_tokens}
                     )
                     if "multi_modal_data" in batch.non_tensor_batch:
-                        prompt_token_ids = [
-                            batch.non_tensor_batch["multi_modal_data"][0]
-                            ["prompt_token_ids"]
-                        ]
-                        multi_modal_data = [
-                            batch.non_tensor_batch["multi_modal_data"][0]
-                            ["multi_modal_data"]
-                        ]
+                        prompt_token_ids = [batch.non_tensor_batch["multi_modal_data"][0]["prompt_token_ids"]]
+                        multi_modal_data = [batch.non_tensor_batch["multi_modal_data"][0]["multi_modal_data"]]
                     else:
-                        prompt_token_ids = gather_unpadded_input_ids(input_ids=input_ids, attention_mask=attention_mask)
+                        prompt_token_ids = gather_unpadded_input_ids(
+                            input_ids=input_ids, attention_mask=attention_mask
+                        )
                         multi_modal_data = None
                     lora_requests = None
                     if self.is_lora:
@@ -300,10 +297,10 @@ class VllmStrategy(InferenceStrategy):
             self.model.offload_states(self.sleep_level)
         self.recv_manager.clear()
         gc.collect()
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
     # 参数同步相关接口
-    def setup_collective_group(self, model_update_name, comm_plan, backend="nccl"):
+    def setup_collective_group(self, model_update_name, comm_plan, backend=current_platform.communication_backend):
         self.model.setup_collective_group(comm_plan=comm_plan, backend=backend, rank_in_cluster=self.worker.rank)
 
     def broadcast_parameter(self, model_update_name, src_pp_rank, dtype, shape, parameter_name, is_lora=False):
@@ -327,7 +324,9 @@ def gather_unpadded_input_ids(input_ids: torch.Tensor, attention_mask: torch.Ten
     return gathered_input_ids
 
 
-def gather_outputs_to_pad_tensor(request_outputs: List["RequestOutput"], pad_token_id, device="cuda") -> torch.Tensor:
+def gather_outputs_to_pad_tensor(
+    request_outputs: List["RequestOutput"], pad_token_id, device=current_platform.device_type
+) -> torch.Tensor:
     token_ids_list_of_lists = [
         torch.tensor(completion_output.token_ids, device=device)
         for request_output in request_outputs
@@ -368,7 +367,7 @@ def compare_sampling_params(params1: SamplingParams, params2: SamplingParams) ->
         "top_k",
         "max_tokens",
         "n",
-        "stop_token_ids", 
+        "stop_token_ids",
         "presence_penalty",
         "frequency_penalty",
         "repetition_penalty",

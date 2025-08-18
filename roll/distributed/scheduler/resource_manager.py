@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, Optional
 import ray
 from ray.util.placement_group import PlacementGroup
 
+from roll.platforms import current_platform
 from roll.utils.ray_utils import get_visible_gpus, get_node_rank
 
 
@@ -15,13 +16,13 @@ class ResourceManager:
             facilitating Ray to deploy Actors on specified GPU devices.
         """
         available_resources = ray.available_resources()
-        available_gpu = available_resources.get("GPU", 0)
+        available_gpu = available_resources.get(current_platform.ray_device_key, 0)
 
         nodes_maybe_used = []
         ray_nodes = ray.nodes()
         for node in ray_nodes:
             resource = node["Resources"]
-            node_gpu_num = int(resource.get("GPU", 0))
+            node_gpu_num = int(resource.get(current_platform.ray_device_key, 0))
             if node_gpu_num >= num_gpus_per_node:
                 nodes_maybe_used.append(node)
         nodes_maybe_used = sorted(nodes_maybe_used, key=lambda n: n["Resources"]["CPU"])
@@ -42,16 +43,21 @@ class ResourceManager:
             for i in range(self.num_nodes):
                 node = nodes_maybe_used[i]
                 node_cpu = int(node["Resources"]["CPU"])
-                bundles.append({"GPU": self.gpu_per_node, "CPU": max(node_cpu / 2, 1)})
+                bundles.append({current_platform.ray_device_key: self.gpu_per_node, "CPU": max(node_cpu / 2, 1)})
 
             self.placement_groups = [ray.util.placement_group([bundle]) for bundle in bundles]
             ray.get([pg.ready() for pg in self.placement_groups])
-            gpu_ranks = ray.get(
-                [
-                    get_visible_gpus.options(placement_group=pg, num_gpus=self.gpu_per_node).remote()
-                    for pg in self.placement_groups
-                ]
-            )
+            gpu_ranks = ray.get([
+                get_visible_gpus.options(
+                    placement_group=pg,
+                    **(
+                        {"num_gpus": self.gpu_per_node}
+                        if current_platform.ray_device_key == "GPU"
+                        else {"resources": {current_platform.ray_device_key: self.gpu_per_node}}
+                    )
+                ).remote(current_platform.device_control_env_var)
+                for pg in self.placement_groups
+            ])
             print(f"gpu ranks: {gpu_ranks}")
             self.node_ranks = ray.get(
                 [get_node_rank.options(placement_group=pg).remote() for pg in self.placement_groups])

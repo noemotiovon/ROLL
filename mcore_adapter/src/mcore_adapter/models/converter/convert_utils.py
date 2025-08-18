@@ -7,6 +7,7 @@ import torch
 import torch.distributed as dist
 from megatron.core import mpu
 from packaging.version import Version as PkgVersion
+from roll.platforms import current_platform
 
 
 if TYPE_CHECKING:
@@ -232,7 +233,7 @@ class StackedTensors:
 
 
 class TensorBucket:
-    def __init__(self, bucket_size, device="cuda"):
+    def __init__(self, bucket_size, device=current_platform.device_type):
         self.buffer = torch.empty(bucket_size, dtype=torch.int8, device=device)
         self.device = device
         self.bucket_size = bucket_size

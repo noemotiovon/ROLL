@@ -12,7 +12,7 @@ from vllm.lora.request import LoRARequest
 from vllm.usage.usage_lib import UsageContext
 from vllm.utils import Counter
 
-
+from roll.platforms import current_platform
 from roll.third_party.vllm.vllm_0_8_4.llm_engine import LLMEngine084
 from roll.utils.send_recv_utils import SendBucketManager
 
@@ -62,7 +62,7 @@ class Llm084(LLM):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ""
         # torch.cuda may already init, explicitly disable expandable_segments
         # here (only matters when VLLM_USE_RAY_SPMD_WORKER=0)
-        torch.cuda.memory._set_allocator_settings("expandable_segments:False")
+        current_platform.set_allocator_settings()
 
         if "disable_log_stats" not in kwargs:
             kwargs["disable_log_stats"] = True
@@ -216,6 +216,8 @@ class Llm084(LLM):
                 "dtype": weight.dtype,
                 "weight": weight.cpu().tolist()
             }
+        else:
+            weight_dict = weight
         self.collective_rpc(method="update_parameter", args=(parameter_name, weight_dict, ranks_in_worker))
 
     def update_parameter_in_bucket(self, meta_infos, buffer, ranks_in_worker):

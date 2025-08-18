@@ -30,6 +30,7 @@ from roll.utils.deepspeed_utils import get_optimizer_grouped_parameters
 from roll.utils.functionals import append_to_dict, log_probs_from_logits
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -61,7 +62,7 @@ class DeepSpeedInferStrategy(InferenceStrategy):
         assert self.ds_config.is_zero3(), "deepspeed infer only supports zero = 3."
 
         deepspeed.init_distributed(timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         self.worker.rank_info.dp_rank = dist.get_rank()
         self.worker.rank_info.dp_size = dist.get_world_size()
@@ -151,7 +152,7 @@ class DeepSpeedInferStrategy(InferenceStrategy):
     # 参数同步相关接口
     def broadcast_parameter(self, model_update_name, src_pp_rank, dtype, shape, parameter_name):
         comm_plan = self.model_update_comm_plan[model_update_name][src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device=current_platform.device_type)
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         param = self.model.get_parameter(parameter_name)
         if not self.ds_config.is_zero3():
@@ -201,7 +202,7 @@ class DeepSpeedInferStrategy(InferenceStrategy):
             include = ds_include
 
         self.model.offload_states(include=include, non_blocking=non_blocking)
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
 
 class DeepSpeedTrainStrategy(DeepSpeedInferStrategy, TrainStrategy):
@@ -212,7 +213,7 @@ class DeepSpeedTrainStrategy(DeepSpeedInferStrategy, TrainStrategy):
 
         set_seed(seed=self.worker.pipeline_config.seed)
         deepspeed.init_distributed(timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         self.worker.rank_info.dp_rank = dist.get_rank()
         self.worker.rank_info.dp_size = dist.get_world_size()
