@@ -1,6 +1,6 @@
 # ROLL x Ascend
 
-Last updated: 08/15/2025.
+Last updated: 08/18/2025.
 
 我们在 ROLL 上增加对华为昇腾设备的支持。
 
@@ -167,18 +167,19 @@ python examples/start_agentic_pipeline.py \
 
 分别按照以下规则进行与 GPU 的精度与吞吐量的对比
 精度对比:
-根据经验，对于 Agentic 和 RLVR 等 RL 类算法，我们期望在相同配置下华为昇腾设备与 A100 的 rewards 平均绝对误差 <= 4%，计算方式参考下公式。
-```
-$ Mean Error = \frac{\sum_{i=1}^{N} |reward_i^{npu} - reward_{i}^{gpu}|}{N}  \leq 0.04 $
-```
-对于 DPO 和 Distill 等类算法，我们期望在相同配置下华为昇腾设备与 A100 的 loss 相对误差 <= 4%，计算方式参考下公式。
-```
-$ Mean Error = \frac{\sum_{i=1}^{N} |loss_i^{npu} - loss_{i}^{gpu}|}{N}  \leq 0.04 $
-```
+根据经验，对于 Agentic 和 RLVR 等 RL 类算法，我们期望在相同配置下华为昇腾设备与 A100 的 rewards 平均绝对误差 **≤ 4%**，计算方式参考下公式：
+
+$$
+\text{Mean Error} = \frac{\sum_{i=1}^{N} \lvert reward_i^{npu} - reward_i^{gpu} \rvert}{N} \leq 0.04
+$$
+
+对于 DPO 和 Distill 等类算法，我们期望在相同配置下华为昇腾设备与 A100 的 loss 相对误差 **≤ 4%**，计算方式参考下公式：
+
+$$
+\text{Mean Error} = \frac{\sum_{i=1}^{N} \lvert loss_i^{npu} - loss_i^{gpu} \rvert}{N} \leq 0.04
+$$
 
 吞吐对比：Ascend npu 和 A100 分别取日志中前4个 step 的 throughput 的 tpu 值 做平均， tpu ratio = npu 平均值 / A100 平均值。
 
-
 ## 声明
------------------------------------
 ROLL 中提供的 Ascend 支持代码皆为参考样例，商业使用请通过官方正式途径沟通，谢谢。
