@@ -63,7 +63,7 @@ profiler_output_dir: /data/oss_bucket_0/yali/llm/profile/${exp_name}
 
 0. **如何debug代码**
 
-在RayUtils的env中设置 "RAY_DEBUG": "legacy" ， 就可以采用pdb进行单步调试
+在对应后端的Platform的env中设置 "RAY_DEBUG": "legacy" ， 就可以采用pdb进行单步调试
 
 
 0. **如果出现这种错误: self.node2pg[node_rank] KeyError: 1**

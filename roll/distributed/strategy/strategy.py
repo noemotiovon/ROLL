@@ -5,6 +5,7 @@ from typing import Callable, Dict, Tuple
 import torch
 
 from roll.distributed.scheduler.protocol import DataProto
+from roll.platforms import current_platform
 from roll.utils.checkpoint_manager import CheckpointManager
 from roll.utils.constants import IGNORE_INDEX
 from roll.utils.collective import collective
@@ -81,10 +82,12 @@ class InferenceStrategy(ABC):
     def update_parameter_in_bucket(self, model_update_name, meta_infos, buffer, ranks_in_worker):
         raise NotImplementedError
 
-    def setup_collective_group(self, model_update_name, comm_plan, backend="nccl"):
+    def setup_collective_group(self, model_update_name, comm_plan, backend=None):
         """
         单卡infer strategy可直接复用，多卡infer strategy需要自行管理
         """
+        if backend is None:
+            backend = current_platform.communication_backend
         rank, comm_plan_args = get_dist_info_from_comm_plan(
             comm_plan, rank_in_cluster=self.worker.rank, rank_in_worker=0
         )
@@ -101,7 +104,7 @@ class InferenceStrategy(ABC):
             world_size, rank, backend=backend, group_name=group_name, master_addr=master_addr, master_port=master_port
         )
         # A small all_reduce for warmup.
-        collective.allreduce(torch.zeros(1).cuda(), group_name=group_name)
+        collective.allreduce(torch.zeros(1).to(current_platform.device_type), group_name=group_name)
         if model_update_name not in self.model_update_comm_plan:
             self.model_update_comm_plan[model_update_name] = {}
         self.model_update_comm_plan[model_update_name][src_pp_rank] = dict(
@@ -159,7 +162,9 @@ class TrainStrategy(InferenceStrategy):
         self.scheduler = None
         self.checkpoint_manager = CheckpointManager(checkpoint_config=self.worker_config.checkpoint_config)
 
-    def setup_collective_group(self, model_update_name, comm_plan, backend="nccl"):
+    def setup_collective_group(self, model_update_name, comm_plan, backend=None):
+        if backend is None:
+            backend = current_platform.communication_backend
         comm_plan_args = comm_plan[self.worker.rank]
         group_name = comm_plan_args["group_name"]
         master_addr = comm_plan_args["master_addr"]
@@ -172,7 +177,7 @@ class TrainStrategy(InferenceStrategy):
             world_size, rank, backend=backend, group_name=group_name, master_addr=master_addr, master_port=master_port
         )
         # A small all_reduce for warmup.
-        collective.allreduce(torch.zeros(1).cuda(), group_name=group_name)
+        collective.allreduce(torch.zeros(1).to(current_platform.device_type), group_name=group_name)
         if model_update_name not in self.model_update_comm_plan:
             self.model_update_comm_plan[model_update_name] = {}
         self.model_update_comm_plan[model_update_name][src_pp_rank] = dict(

@@ -92,7 +92,7 @@ profiler_output_dir: /data/oss_bucket_0/yali/llm/profile/${exp_name}
 
 ### 如何 debug 代码？
 
-在 RayUtils 的 env 中设置 `"RAY_DEBUG": "legacy"`，就可以采用 pdb 进行单步调试。
+在 Platform 的 env 中设置 `"RAY_DEBUG": "legacy"`，就可以采用 pdb 进行单步调试。
 
 ## 常见错误及解决方案
 

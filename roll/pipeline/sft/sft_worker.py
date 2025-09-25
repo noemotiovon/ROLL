@@ -11,6 +11,7 @@ from roll.distributed.scheduler.protocol import DataProto
 from roll.distributed.strategy.factory import create_strategy
 from roll.distributed.strategy.strategy import InferenceStrategy, TrainStrategy
 from roll.models.model_providers import default_actor_model_provider
+from roll.platforms import current_platform
 
 
 class SFTWorker(Worker):
@@ -28,7 +29,7 @@ class SFTWorker(Worker):
 
     @register(Dispatch.DP_MP_DISPATCH_FIRST, clear_cache=False)
     def train_step(self, data: DataProto):
-        data = data.to("cuda")
+        data = data.to(current_platform.device_type)
         data = self.strategy.get_data_input(data)
         metrics = self.strategy.train_step(batch=data, loss_func=self.loss_func)
         output = DataProto(meta_info={"metrics": metrics}).to("cpu")
@@ -36,7 +37,7 @@ class SFTWorker(Worker):
 
     @register(Dispatch.DP_MP_DISPATCH_FIRST, clear_cache=False)
     def val_step(self, data: DataProto):
-        data = data.to("cuda")
+        data = data.to(current_platform.device_type)
         data.meta_info["micro_batch_size"] = self.worker_config.infer_batch_size
         data = self.strategy.get_data_input(data)
         metrics = self.strategy.forward_step(batch=data, forward_func=self.loss_func)

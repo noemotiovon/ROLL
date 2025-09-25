@@ -7,6 +7,7 @@ from roll.distributed.scheduler.decorator import Dispatch, register
 from roll.distributed.scheduler.protocol import DataProto
 from roll.pipeline.base_worker import ActorWorker as BaseActorWorker
 from roll.utils.functionals import append_to_dict
+from roll.platforms import current_platform
 
 
 class ActorWorker(BaseActorWorker):
@@ -17,7 +18,7 @@ class ActorWorker(BaseActorWorker):
         global_step = data.meta_info.get("global_step", 0)
         metrics = {}
 
-        data = data.to("cuda")
+        data = data.to(current_platform.device_type)
 
         per_device_train_batch_size = self.worker_config.training_args.per_device_train_batch_size
         backward_batch_size = (

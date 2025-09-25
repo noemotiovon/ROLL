@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 import torch
 from megatron.core import mpu
 
+from ...platforms import current_platform
 from ..auto.modeling_auto import register_model
 from ..model_factory import McaGPTModel
 from ..model_utils import ModuleUtilsMixin
@@ -24,7 +25,7 @@ class Qwen2VLModel(McaGPTModel, ModuleUtilsMixin):
                 Qwen2VLVisionConfig(**config.vision_config),
                 attn_implementation="sdpa",
                 torch_dtype=self.config.params_dtype,
-            ).to(torch.cuda.current_device())
+            ).to(current_platform.current_device())
             for param in self.vision_model.parameters():
                 setattr(param, "sequence_parallel", config.sequence_parallel)
 

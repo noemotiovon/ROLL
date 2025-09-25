@@ -25,11 +25,12 @@ from roll.distributed.strategy.strategy import InferenceStrategy, TrainStrategy
 from roll.models.model_providers import default_processor_provider, default_tokenizer_provider
 from roll.third_party.deepspeed.offload_states_patch import bind_deepspeed_offload_states_func
 from roll.utils.collective import collective
-from roll.utils.context_parallel import apply_ulysses_patch, get_ulysses_group, set_upg_manager
+from roll.utils.context_parallel import get_ulysses_group, set_upg_manager
 from roll.utils.deepspeed_utils import get_optimizer_grouped_parameters
 from roll.utils.functionals import append_to_dict, entropy_from_logits, log_probs_from_logits
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -61,14 +62,14 @@ class DeepSpeedInferStrategy(InferenceStrategy):
         assert self.ds_config.is_zero3(), "deepspeed infer only supports zero = 3."
 
         deepspeed.init_distributed(timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         # apply Ulysses parallel
         world_size = dist.get_world_size()
         global_rank = dist.get_rank()
 
         if (cp_size := self.worker_config.model_args.ulysses_size) > 1:
-            apply_ulysses_patch()
+            current_platform.apply_ulysses_patch()
             set_upg_manager(ulysses_size=cp_size, rank=global_rank, world_size=world_size)
 
         self.worker.rank_info.dp_rank = global_rank // cp_size
@@ -225,7 +226,7 @@ class DeepSpeedInferStrategy(InferenceStrategy):
     # 参数同步相关接口
     def broadcast_parameter(self, model_update_name, src_pp_rank, dtype, shape, parameter_name, is_lora=False):
         comm_plan = self.model_update_comm_plan[model_update_name][src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device=current_platform.device_type)
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         param = self.model.get_parameter(parameter_name)
         if not self.ds_config.is_zero3():
@@ -275,7 +276,7 @@ class DeepSpeedInferStrategy(InferenceStrategy):
             include = ds_include
 
         self.model.offload_states(include=include, non_blocking=non_blocking)
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
     def op_compute_log_probs(self, logits: torch.Tensor, input_ids: torch.Tensor, attention_mask: torch.Tensor):
         """
@@ -318,14 +319,14 @@ class DeepSpeedTrainStrategy(DeepSpeedInferStrategy, TrainStrategy):
 
         set_seed(seed=self.worker.pipeline_config.seed)
         deepspeed.init_distributed(timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         # apply Ulysses parallel
         world_size = dist.get_world_size()
         global_rank = dist.get_rank()
 
         if (cp_size := self.worker_config.model_args.ulysses_size) > 1:
-            apply_ulysses_patch()
+            current_platform.apply_ulysses_patch()
             set_upg_manager(ulysses_size=cp_size, rank=global_rank, world_size=world_size)
 
         self.worker.rank_info.dp_rank = global_rank // cp_size

@@ -6,6 +6,7 @@ from typing import Any, Tuple
 import torch
 import torch.distributed as dist
 
+from roll.platforms import current_platform
 from roll.utils.context_parallel.globals import get_ulysses_seqlen, set_ulysses_seqlen
 
 
@@ -56,7 +57,7 @@ def all_to_all_4D(
         if seq_world_size > 1:
             dist.all_to_all_single(output, input_t, group=group)
             if use_sync:
-                torch.cuda.synchronize()
+                current_platform.synchronize()
         else:
             output = input_t
         # if scattering the seq-dim, transpose the heads back to the original dimension
@@ -108,7 +109,7 @@ def all_to_all_4D(
         if seq_world_size > 1:
             dist.all_to_all_single(output, input_t, group=group)
             if use_sync:
-                torch.cuda.synchronize()
+                current_platform.synchronize()
         else:
             output = input_t
 

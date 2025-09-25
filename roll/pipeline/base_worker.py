@@ -27,6 +27,7 @@ from roll.utils.functionals import (
     agg_loss,
 )
 from roll.utils.offload_states import OffloadStateType
+from roll.platforms import current_platform
 
 
 class ActorWorker(Worker):
@@ -63,7 +64,7 @@ class ActorWorker(Worker):
         # with arguments (inside state_offload_manager). We explicitly init cuda here because
         # current process is used as engine client when using vllm v1 engine, and
         # there is no chance to init cuda context.
-        torch.cuda.init()
+        current_platform.init()
 
     @register(dispatch_mode=Dispatch.DP_MP_DISPATCH_FIRST)
     def train_step(self, data: DataProto):
@@ -82,7 +83,7 @@ class ActorWorker(Worker):
             is_offload_states=is_offload_states,
             load_kwargs={"include": [OffloadStateType.model_params, OffloadStateType.other_params]},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data = self.strategy.get_data_input(data)
             per_device_train_batch_size = self.worker_config.training_args.per_device_train_batch_size
             backward_batch_size = (
@@ -145,7 +146,7 @@ class ActorWorker(Worker):
             metric_infix=f"{self.cluster_name}/generate",
             is_offload_states=is_offload_states,
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data.meta_info["micro_batch_size"] = self.worker_config.infer_batch_size
 
             output = self.strategy.generate(batch=data, generation_config=generation_config)
@@ -226,7 +227,7 @@ class ActorWorker(Worker):
             is_offload_states=is_offload_states,
             load_kwargs={"include": [OffloadStateType.model_params]},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data.meta_info["micro_batch_size"] = self.worker_config.infer_batch_size
             with torch.no_grad():
                 results: Dict[str, torch.Tensor] = self.strategy.forward_step(
@@ -425,7 +426,7 @@ class CriticWorker(Worker):
             is_offload_states=is_offload_states,
             load_kwargs={"include": [OffloadStateType.model_params]},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data.meta_info["micro_batch_size"] = self.worker_config.infer_batch_size
             with torch.no_grad():
                 results: Dict[str, torch.Tensor] = self.strategy.forward_step(
@@ -454,7 +455,7 @@ class CriticWorker(Worker):
             is_offload_states=is_offload_states,
             load_kwargs={"include": [OffloadStateType.model_params, OffloadStateType.other_params]},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             per_device_train_batch_size = self.worker_config.training_args.per_device_train_batch_size
             backward_batch_size = (
                 per_device_train_batch_size * self.worker_config.training_args.gradient_accumulation_steps
@@ -579,7 +580,7 @@ class RewardWorker(Worker):
             metric_infix=f"{self.cluster_name}/compute_rewards",
             is_offload_states=is_offload_states,
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
 
             # TODO: _switch_chat_template, 异构reward model
 

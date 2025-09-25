@@ -18,6 +18,10 @@ from tensordict import TensorDict
 from torch.utils.data import DataLoader
 
 from roll.utils.functionals import union_two_dict, divide_by_chunk_size
+from roll.platforms import current_platform
+from roll.utils.logging import get_logger
+
+logger = get_logger()
 
 try:
     tensordict.set_lazy_legacy(False).set()
@@ -170,6 +174,12 @@ class DataProto:
     def __post_init__(self):
         # perform necessary checking
         self.check_consistency()
+    
+        if self.batch is not None and current_platform.is_npu():
+            for key, val in self.batch.items():
+                if isinstance(val, torch.Tensor) and val.dtype == torch.int64:
+                    logger.debug(f"[NPU] Converting Tensor {key} from int64 -> int32, shape={val.shape}")
+                    self.batch[key] = val.to(torch.int32)
 
     def __len__(self):
         if self.batch is not None:
@@ -226,7 +236,7 @@ class DataProto:
         batch_deserialized, non_tensor_batch, meta_info = data
         batch_deserialized.seek(0)
         batch = torch.load(
-            batch_deserialized, weights_only=False, map_location="cpu" if not torch.cuda.is_available() else None
+            batch_deserialized, weights_only=False, map_location="cpu" if not current_platform.is_available() else None
         )
         self.batch = batch
         self.non_tensor_batch = non_tensor_batch
@@ -259,6 +269,9 @@ class DataProto:
 
         for key, val in data.items():
             if isinstance(val, torch.Tensor):
+                if current_platform.is_npu() and val.dtype == torch.int64:
+                    logger.debug(f"[NPU] Converting Tensor {key} from int64 -> int32, shape={val.shape}")
+                    val = val.to(torch.int32)
                 tensors[key] = val
             elif isinstance(val, np.ndarray):
                 non_tensors[key] = val

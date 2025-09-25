@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from tensordict import TensorDict
 
 from roll.pipeline.rlvr.rlvr_config import RLVRConfig
+from roll.platforms import current_platform
 from roll.utils.kl_controller import AdaptiveKLController
 from roll.utils.logging import get_logger
 
@@ -28,7 +29,7 @@ def tensor_to_cpu_visitor(obj, path):
 def tensor_to_cuda_visitor(obj, path):
     if torch.is_tensor(obj):
         if not obj.is_cuda:
-            obj.data = obj.data.detach().to(device=torch.device("cuda"))
+            obj.data = obj.data.detach().to(device=torch.device(current_platform.device_type))
         return True
     return False
 

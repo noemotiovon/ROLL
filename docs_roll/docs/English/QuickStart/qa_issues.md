@@ -92,7 +92,7 @@ Then use the [Perfetto UI](https://ui.perfetto.dev/) tool for analysis.
 
 ### How to debug code?
 
-Set `"RAY_DEBUG": "legacy"` in RayUtils' env, and then you can use pdb for step-by-step debugging.
+Set `"RAY_DEBUG": "legacy"` in Platform' env, and then you can use pdb for step-by-step debugging.
 
 ## Common Errors and Solutions
 

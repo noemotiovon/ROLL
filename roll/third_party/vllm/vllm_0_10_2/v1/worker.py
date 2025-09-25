@@ -11,6 +11,7 @@ from roll.third_party.vllm.vllm_utils import TensorLoRARequest, patch_vllm_lora_
 from roll.third_party.vllm.worker_helper import WorkerHelper
 from roll.utils.logging import get_logger
 from roll.utils.send_recv_utils import RecvBucketManager
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -24,7 +25,7 @@ class Worker0102(WorkerHelper, Worker):
 
     def update_parameter(self, parameter_name, weight, ranks_in_worker):
         weight_dict = weight
-        weight = torch.tensor(weight_dict["weight"], dtype=weight_dict["dtype"]).cuda()
+        weight = torch.tensor(weight_dict["weight"], dtype=weight_dict["dtype"]).to(current_platform.device_type)
         super().update_parameter(parameter_name, weight, ranks_in_worker)
 
     def broadcast_bucket(self, src_pp_rank, meta_infos, bucket_size):
@@ -33,7 +34,7 @@ class Worker0102(WorkerHelper, Worker):
 
     def update_parameter_in_bucket(self, meta_infos, buffer, ranks_in_worker):
         RecvBucketManager.dict_to_meta(meta_infos)
-        buffer = torch.tensor(buffer, dtype=torch.int8, device='cuda')
+        buffer = torch.tensor(buffer, dtype=torch.int8, device=current_platform.device_type)
         super().update_parameter_in_bucket(meta_infos, buffer, ranks_in_worker)
 
     def add_lora(self, peft_config) -> bool:

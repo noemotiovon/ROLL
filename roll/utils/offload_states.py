@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from transformers import PreTrainedModel
 from trl import AutoModelForCausalLMWithValueHead
+from roll.platforms import current_platform
 
 
 class OffloadStateType(str, Enum):
@@ -42,11 +43,11 @@ def load_hf_model(model: PreTrainedModel):
         return
     device_map = getattr(model, "hf_device_map", None)
     if device_map is None:
-        model.to("cuda")
+        model.to(current_platform.device_type)
     else:
         [
             model.get_submodule(layer_name).to(
-                device_id if isinstance(device_id, torch.device) else f"cuda:{device_id}"
+                device_id if isinstance(device_id, torch.device) else f"{current_platform.device_type}:{device_id}"
             )
             for layer_name, device_id in device_map.items()
         ]
@@ -109,7 +110,7 @@ def offload_module(model: torch.nn.Module, device="cpu", pin_memory: bool = True
         setattr(model, "has_offloaded", True)
 
 
-def reload_module(model: torch.nn.Module, device="cuda", non_blocking: bool = False):
+def reload_module(model: torch.nn.Module, device=current_platform.device_type, non_blocking: bool = False):
     tensors = list(model.parameters())
     if getattr(model, "model_parameters_cpu_buffers", None) is not None and getattr(model, "has_offloaded"):
         move_device_buffer_to_tensors(

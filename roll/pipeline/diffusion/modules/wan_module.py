@@ -24,6 +24,7 @@ from diffsynth.models.wan_video_dit import WanModel, sinusoidal_embedding_1d
 from roll.pipeline.diffusion.reward_fl.face_tools import FaceAnalysis, Face
 from roll.pipeline.diffusion.reward_fl.wan_video_vae import WanVideoVAE
 from roll.pipeline.diffusion.reward_fl.euler import EulerScheduler
+from roll.platforms import current_platform
 
 
 def vae_output_to_videotensor(vae_output, pattern="B C T H W", min_value=-1, max_value=1):
@@ -116,7 +117,7 @@ class WanTrainingModule(DiffusionTrainingModule):
         
         self.apply_patches()
         
-        face_model = FaceAnalysis(root=reward_model_path, device='cuda')
+        face_model = FaceAnalysis(root=reward_model_path, device=current_platform.device_type)
         
         # 将冻结模型存入一个普通字典中 PyTorch 不会注册普通字典中的 nn.Module
         self.frozen_dependencies = {
@@ -148,7 +149,7 @@ class WanTrainingModule(DiffusionTrainingModule):
 
         # apply patches
         self.pipe.units.append(WanVideoUnit_Face())
-        self.pipe.scheduler = EulerScheduler(num_train_timesteps=1000, shift=5)
+        self.pipe.scheduler = EulerScheduler(num_train_timesteps=1000, shift=5, device=current_platform.device_type)
         vae_state_dict = self.pipe.vae.state_dict()
         self.pipe.vae = WanVideoVAE()
         self.pipe.vae.load_state_dict(vae_state_dict, strict=True)
@@ -250,7 +251,7 @@ class WanTrainingModule(DiffusionTrainingModule):
 
         del video_tensor, video_decoded
         gc.collect()
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
         loss = -(face_score.bfloat16()-0.54)/0.16 * 0.01
         
@@ -260,7 +261,7 @@ class WanTrainingModule(DiffusionTrainingModule):
         self.global_step = self.global_step + 1
 
         gc.collect()
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()
 
         return loss
 
@@ -412,7 +413,7 @@ def model_fn_wan_video(
         t = dit.time_embedding(sinusoidal_embedding_1d(dit.freq_dim, timestep).unsqueeze(0))
         t_mod = dit.time_projection(t).unflatten(2, (6, dit.dim))
     else:
-        with torch.amp.autocast('cuda', dtype=torch.float32):
+        with torch.amp.autocast(current_platform.device_type, dtype=torch.float32):
             t = dit.time_embedding(sinusoidal_embedding_1d(dit.freq_dim, timestep))
             t_mod = dit.time_projection(t).unflatten(1, (6, dit.dim))
             assert t.dtype == torch.float32 and t_mod.dtype == torch.float32

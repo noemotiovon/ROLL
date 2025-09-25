@@ -29,6 +29,7 @@ from roll.configs import ModelArguments
 from roll.utils.checkpoint_manager import download_model, file_lock_context
 from roll.utils.logging import get_logger
 from roll.utils.packages import is_transformers_version_greater_than
+from roll.platforms import current_platform
 
 
 logger = get_logger()
@@ -422,7 +423,7 @@ def default_actor_model_provider(
         if not is_deepspeed_zero3_enabled():
             init_kwargs["low_cpu_mem_usage"] = True
             if is_trainable:
-                init_kwargs["device_map"] = {"": torch.cuda.current_device()}
+                init_kwargs["device_map"] = {"": current_platform.current_device()}
             elif model_args.device_map:
                 init_kwargs["device_map"] = model_args.device_map
             elif model_args.export_dir is None:
@@ -470,7 +471,7 @@ def default_reward_model_provider(
         if not is_deepspeed_zero3_enabled():
             init_kwargs["low_cpu_mem_usage"] = True
             if is_trainable:
-                init_kwargs["device_map"] = {"": torch.cuda.current_device()}
+                init_kwargs["device_map"] = {"": current_platform.current_device()}
             elif model_args.device_map:
                 init_kwargs["device_map"] = model_args.device_map
         logger.info(f"init_kwargs: {init_kwargs}")
@@ -543,7 +544,7 @@ def default_value_model_provider(
         if not is_deepspeed_zero3_enabled():
             init_kwargs["low_cpu_mem_usage"] = True
             if is_trainable:
-                init_kwargs["device_map"] = {"": torch.cuda.current_device()}
+                init_kwargs["device_map"] = {"": current_platform.current_device()}
             elif model_args.device_map:
                 init_kwargs["device_map"] = model_args.device_map
         logger.info(f"init_kwargs: {init_kwargs}")
