@@ -20,6 +20,7 @@ from roll.utils.functionals import (
 from roll.utils.cuda_ipc_utils import MultiprocessingSerializer
 from roll.utils.offload_states import OffloadStateType
 from roll.pipeline.distill.various_divergence import VariousDivergence, GPTLMLoss
+from roll.platforms import current_platform
 
 
 
@@ -71,7 +72,7 @@ class StudentWorker(Worker):
                 is_offload_states=is_offload_states,
                 load_kwargs={"include": None},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data = self.strategy.get_data_input(data)
             if "labels" in data.batch.keys():
                 # rename key: labels -> labels_for_loss
@@ -178,7 +179,7 @@ class TeacherWorker(Worker):
                 is_offload_states=is_offload_states,
                 load_kwargs={"include": None},
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data.meta_info["micro_batch_size"] = self.pipeline_config.teacher.training_args.per_device_train_batch_size
             data.meta_info["output_on_all_tp_ranks"] = True
             self.logger.info(f"global_step: {data.meta_info.get('global_step', 0)}")

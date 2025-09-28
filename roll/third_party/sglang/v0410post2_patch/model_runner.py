@@ -21,6 +21,7 @@ from sglang.srt.utils import (
 
 from roll.utils.collective import collective
 from roll.utils.functionals import get_dist_info_from_comm_plan
+from roll.platforms import current_platform
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,7 @@ class ModelRunnerSA(ModelRunner):
             return True, "Succeeded to broadcast_bucket."
 
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        buffer = torch.empty(bucket_size, dtype=torch.int8, device="cuda")
+        buffer = torch.empty(bucket_size, dtype=torch.int8, device=current_platform.device_type)
         collective.broadcast(tensor=buffer, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter_in_bucket(meta_infos, buffer, [dist.get_rank()])
         return True, "Succeeded to broadcast_bucket."
@@ -170,7 +171,7 @@ class ModelRunnerSA(ModelRunner):
         if src_pp_rank not in self.model_update_comm_plan:
             return True, "Succeeded to broadcast_parameter."
         comm_plan = self.model_update_comm_plan[src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device=current_platform.device_type)
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter(parameter_name, weight, [dist.get_rank()])
         return True, "Succeeded to broadcast_parameter."

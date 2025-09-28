@@ -17,6 +17,7 @@ from vllm.envs import get_default_cache_root
 
 from roll.third_party.vllm.vllm_0_10_0.llm_engine import LLMEngine0100
 from roll.utils.send_recv_utils import SendBucketManager
+from roll.platforms import current_platform
 
 class Llm0100(LLM):
 
@@ -57,7 +58,7 @@ class Llm0100(LLM):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = ""
         # torch.cuda may already init, explicitly disable expandable_segments
         # here (only matters when VLLM_USE_RAY_SPMD_WORKER=0)
-        torch.cuda.memory._set_allocator_settings("expandable_segments:False")
+        current_platform.set_allocator_settings("expandable_segments:False")
 
         os.environ["VLLM_CACHE_ROOT"] = os.path.join(
             get_default_cache_root(), "vllm", os.environ.get("WORKER_NAME", ""))

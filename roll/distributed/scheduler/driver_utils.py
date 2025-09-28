@@ -16,27 +16,27 @@ def is_driver():
 
 
 def get_driver_rank():
-    assert is_driver(), "this function should only be ran on a driver"
+    assert is_driver(), "this function should only be run on a driver"
     return int(os.getenv("RANK", "0"))
 
 
 def get_driver_world_size():
-    assert is_driver(), "this function should only be ran on a driver"
+    assert is_driver(), "this function should only be run on a driver"
     return int(os.getenv("WORLD_SIZE", "1"))
 
 
 def get_driver_master_addr():
-    assert is_driver(), "this function should only be ran on a driver"
+    assert is_driver(), "this function should only be run on a driver"
     return os.getenv("MASTER_ADDR", "127.0.0.1")
 
 
 def get_driver_master_port():
-    assert is_driver(), "this function should only be ran on a driver"
+    assert is_driver(), "this function should only be run on a driver"
     return os.getenv("MASTER_PORT", "6379")
 
 
 def get_driver_node_name():
-    assert is_driver(), "this function should only be ran on a driver"
+    assert is_driver(), "this function should only be run on a driver"
     return os.getenv("WORKER_ID", f"{get_driver_master_addr()}:{get_driver_rank()}")
 
 def is_multi_tenant():

@@ -6,6 +6,7 @@ from typing import Dict
 from roll.distributed.scheduler.decorator import Dispatch, register
 from roll.distributed.scheduler.protocol import DataProto
 from roll.pipeline.base_worker import ActorWorker as BaseActorWorker
+from roll.platforms import current_platform
 from roll.utils.context_managers import state_offload_manger
 from roll.utils.functionals import append_to_dict
 from roll.utils.offload_states import OffloadStateType
@@ -75,7 +76,7 @@ class ActorWorker(BaseActorWorker):
             metric_infix=f"{self.cluster_name}/train_step",
             is_offload_states=is_offload_states,
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data = self.strategy.get_data_input(data)
             per_device_train_batch_size = self.worker_config.training_args.per_device_train_batch_size
             backward_batch_size = (
@@ -124,7 +125,7 @@ class ActorWorker(BaseActorWorker):
             metric_infix=f"{self.cluster_name}/compute_log_probs",
             is_offload_states=is_offload_states,
         ):
-            data = data.to("cuda")
+            data = data.to(current_platform.device_type)
             data.meta_info["micro_batch_size"] = self.worker_config.infer_batch_size
 
             with torch.no_grad():

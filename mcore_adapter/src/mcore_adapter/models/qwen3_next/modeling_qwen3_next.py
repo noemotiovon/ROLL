@@ -15,13 +15,13 @@ from torch.nn import functional as F
 from ..auto.modeling_auto import register_model
 from ..model_factory import McaGPTModel
 from .config_qwen3_next import Qwen3NextConfig
-
+from ...platforms import current_platform
 
 # based on qwen3next code in transformers
 class Qwen3NextRMSNorm(nn.Module):
     def __init__(self, config: "Qwen3NextConfig", hidden_size, eps=1e-6, **kwargs):
         super().__init__()
-        device = torch.cuda.current_device() if not config.use_cpu_initialization else None
+        device = current_platform.current_device() if not config.use_cpu_initialization else None
         self.weight = torch.nn.Parameter(torch.ones(hidden_size, dtype=config.params_dtype, device=device))
         self.variance_epsilon = config.layernorm_epsilon
 
@@ -57,7 +57,7 @@ class Qwen3NextGatedDeltaNet(MegatronModule):
 
         self.chunk_gated_delta_rule = chunk_gated_delta_rule
         super().__init__(config=config)
-        device = torch.cuda.current_device() if not config.use_cpu_initialization else None
+        device = current_platform.current_device() if not config.use_cpu_initialization else None
         self.hidden_size = config.hidden_size
         self.num_v_heads = config.linear_num_value_heads
         self.num_k_heads = config.linear_num_key_heads

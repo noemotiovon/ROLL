@@ -16,6 +16,7 @@ from roll.distributed.scheduler.protocol import DataProto
 from roll.distributed.strategy.factory import create_strategy
 from roll.distributed.strategy.strategy import InferenceStrategy, TrainStrategy
 from roll.models.model_providers import default_tokenizer_provider, default_reward_model_provider
+from roll.platforms import current_platform
 from roll.utils.logging import get_logger
 from roll.utils.context_managers import state_offload_manger
 from roll.utils.prompt import *
@@ -59,7 +60,7 @@ class LLMJudgeRewardWorker(Worker):
             self.tokenizer = self.strategy.tokenizer
             print(f"{self.worker_name} initialized with inference model")
             self.strategy.offload_states()
-            torch.cuda.init()
+            current_platform.init()
         else:
             raise ValueError(f"Unsupported model type: {self.judge_model_type}")
 
@@ -104,8 +105,8 @@ class LLMJudgeRewardWorker(Worker):
         text = chat_template_func(messages)
 
         tokenized = self.tokenizer(text, return_tensors="pt")
-        input_ids = tokenized["input_ids"].to("cuda")
-        attention_mask = tokenized["attention_mask"].to("cuda")
+        input_ids = tokenized["input_ids"].to(current_platform.device_type)
+        attention_mask = tokenized["attention_mask"].to(current_platform.device_type)
 
         generation_config = self.worker_config.generating_args.to_dict()
         generation_config["eos_token_id"] = [self.tokenizer.eos_token_id]
@@ -114,7 +115,7 @@ class LLMJudgeRewardWorker(Worker):
         data = DataProto(
             batch=TensorDict({"input_ids": input_ids, "attention_mask": attention_mask}, batch_size=input_ids.shape[0])
         )
-        data = data.to("cuda")
+        data = data.to(current_platform.device_type)
         data.meta_info = {"micro_batch_size": self.worker_config.infer_batch_size}
 
         with torch.no_grad():

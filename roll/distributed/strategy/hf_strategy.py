@@ -19,6 +19,7 @@ from roll.models.func_providers import log_probs_forward_step_func
 from roll.models.model_providers import default_tokenizer_provider
 from roll.utils.logging import get_logger
 from roll.utils.offload_states import OffloadStateType, offload_hf_model, load_hf_model
+from roll.platforms import current_platform
 
 logger = get_logger()
 
@@ -33,8 +34,8 @@ class HfInferStrategy(InferenceStrategy):
 
     def initialize(self, model_provider):
         set_seed(seed=self.worker.pipeline_config.seed)
-        dist.init_process_group(backend="nccl", timeout=timedelta(minutes=self.worker_config.backend_timeout))
-        dist.all_reduce(torch.zeros(1).cuda())
+        dist.init_process_group(backend=current_platform.communication_backend, timeout=timedelta(minutes=self.worker_config.backend_timeout))
+        dist.all_reduce(torch.zeros(1).to(current_platform.device_type))
 
         self.worker.rank_info.dp_rank = dist.get_rank()
         self.worker.rank_info.dp_size = dist.get_world_size()
@@ -136,7 +137,7 @@ class HfInferStrategy(InferenceStrategy):
         if src_pp_rank not in self.model_update_comm_plan[model_update_name]:
             return
         comm_plan = self.model_update_comm_plan[model_update_name][src_pp_rank]
-        buffer = torch.empty(bucket_size, dtype=torch.int8, device="cuda")
+        buffer = torch.empty(bucket_size, dtype=torch.int8, device=current_platform.device_type)
         collective.broadcast(tensor=buffer, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter_in_bucket(model_update_name, meta_infos, buffer, [dist.get_rank()])
 
@@ -147,7 +148,7 @@ class HfInferStrategy(InferenceStrategy):
         if src_pp_rank not in self.model_update_comm_plan[model_update_name]:
             return
         comm_plan = self.model_update_comm_plan[model_update_name][src_pp_rank]
-        weight = torch.empty(shape, dtype=dtype, device="cuda")
+        weight = torch.empty(shape, dtype=dtype, device=current_platform.device_type)
         collective.broadcast(tensor=weight, src_rank=0, group_name=comm_plan["group_name"])
         self.update_parameter(model_update_name, parameter_name, weight, [dist.get_rank()])
 
@@ -176,4 +177,4 @@ class HfInferStrategy(InferenceStrategy):
     def offload_states(self, include=None, non_blocking=False):
         if include is None or OffloadStateType.model_params in include:
             offload_hf_model(model=self.model)
-        torch.cuda.empty_cache()
+        current_platform.empty_cache()

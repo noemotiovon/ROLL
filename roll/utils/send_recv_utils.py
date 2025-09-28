@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from roll.platforms import current_platform
+
 import torch
 
 if TYPE_CHECKING:
@@ -116,7 +118,7 @@ class TensorBucket:
 class SendBucketManager:
     def __init__(self, bucket_size):
         self.bucket_size = bucket_size
-        self.bucket = TensorBucket(bucket_size)
+        self.bucket = TensorBucket(bucket_size, current_platform.device_type)
 
     def push_tensor(self, tensor: "torch.Tensor", name: str):
         tensor_start = 0

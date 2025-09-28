@@ -8,6 +8,8 @@ from megatron.core import mpu, tensor_parallel
 from .training_args import TrainingArguments
 from .utils import get_logger
 
+from .platforms import current_platform
+
 
 logger = get_logger(__name__)
 
@@ -28,7 +30,7 @@ def _set_random_seed(seed_):
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        if torch.cuda.device_count() > 0:
+        if current_platform.device_count() > 0:
             tensor_parallel.model_parallel_cuda_manual_seed(seed)
     else:
         raise ValueError("Seed ({}) should be a positive integer.".format(seed))
@@ -45,10 +47,10 @@ def _initialize_distributed(args: "TrainingArguments"):
     logger.info(f"Initializing mpu on device {args.device}")
     if not torch.distributed.is_initialized():
         # Manually set the device ids.
-        torch.cuda.set_device(args.device)
+        current_platform.set_device(args.device)
         # Call the init process
         torch.distributed.init_process_group(
-            backend=args.ddp_backend or "nccl",
+            backend=args.ddp_backend or current_platform.communication_backend,
             rank=int(os.getenv("RANK", "0")),
             world_size=int(os.getenv("WORLD_SIZE", "1")),
             timeout=args.ddp_timeout_delta,

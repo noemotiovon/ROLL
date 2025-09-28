@@ -14,6 +14,9 @@ from skimage import transform as trans
 import time
 import os
 import torchvision.ops as ops
+
+from roll.platforms import current_platform
+
 arcface_dst = torch.tensor(
     [[38.2946, 51.6963], [73.5318, 51.5014], [56.0252, 71.7366],
      [41.5493, 92.3655], [70.7299, 92.2041]]).float()
@@ -459,7 +462,7 @@ class FaceAnalysis:
         return loss
 
 if __name__ == '__main__':
-    face_app = FaceAnalysis(root = "/data/models/antelopev2/",device='cuda')
+    face_app = FaceAnalysis(root = "/data/models/antelopev2/",device=current_platform.device_type)
     from decord import VideoReader
     import time
     import torch.nn.functional as F
@@ -475,7 +478,7 @@ if __name__ == '__main__':
     index1 = 0
     all_start = time.time()
     for f in frames:
-        f = torch.from_numpy(2*(f/255.)-1).permute(2,0,1).float().to('cuda') #(3, h, w)
+        f = torch.from_numpy(2*(f/255.)-1).permute(2,0,1).float().to(current_platform.device_type) #(3, h, w)
         start = time.time()
         bboxes, kpss = face_app.detection_model.detect(f)
         end = time.time()

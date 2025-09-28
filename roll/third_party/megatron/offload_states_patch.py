@@ -27,6 +27,7 @@ from megatron.core.transformer.moe.token_dispatcher import MoEAlltoAllTokenDispa
 from megatron.core.fp8_utils import is_float8tensor
 from torch import Tensor
 
+from roll.platforms import current_platform
 from roll.utils.offload_states import move_tensors_to_device_buffer, move_device_buffer_to_tensors
 
 
@@ -123,9 +124,9 @@ def float16_optimizer_with_float16_params_offload_states(self: Float16OptimizerW
         offload_adam_states(self.optimizer, device, pin_memory=pin_memory, non_blocking=non_blocking)
         self.offloaded_states.add(MegatronOffloadStateType.optimizer_states)
 
-    torch.cuda.synchronize()
+    current_platform.synchronize()
     gc.collect()
-    torch.cuda.empty_cache()
+    current_platform.empty_cache()
 
 
 def float16_optimizer_with_float16_params_reload_states(self: Float16OptimizerWithFloat16Params,
@@ -133,7 +134,7 @@ def float16_optimizer_with_float16_params_reload_states(self: Float16OptimizerWi
                                                         non_blocking: bool = False,
                                                         skip_grad_hook_register: bool = False,
                                                         ):
-    device = torch.device(f'cuda:{torch.cuda.current_device()}')
+    device = torch.device(f'{current_platform.device_type}:{current_platform.current_device()}')
     self.offloaded_states = getattr(self, "offloaded_states", set())
     if needs_reload(MegatronOffloadStateType.model_params, include, self.offloaded_states):
         float16_weights: List[Tensor] = [param for sub_group in self.float16_groups for param in sub_group]
@@ -168,7 +169,7 @@ def float16_optimizer_with_float16_params_reload_states(self: Float16OptimizerWi
         reload_adam_states(self.optimizer, device, non_blocking=non_blocking)
         self.offloaded_states.remove(MegatronOffloadStateType.optimizer_states)
 
-    torch.cuda.synchronize()
+    current_platform.synchronize()
 
 
 def move_ddp_model_params_tensor_to_device(optimizer: DistributedOptimizer,
@@ -274,7 +275,7 @@ def move_grad_data_to_device(optimizer,
                     torch.Size([end_index - start_index]), start_index, buffer_type=BufferType.GRAD
                 )
 
-    if device == torch.device(f'cuda:{torch.cuda.current_device()}') and not skip_grad_hook_register:
+    if device == torch.device(f'{current_platform.device_type}:{current_platform.current_device()}') and not skip_grad_hook_register:
         for model_chunk in optimizer.model_chunks:
             for param in model_chunk.module.parameters():
                 if param.requires_grad:
@@ -323,9 +324,9 @@ def distributed_optimizer_offload_states(self: DistributedOptimizer,
         offload_adam_states(self.optimizer, device, pin_memory=pin_memory, non_blocking=non_blocking)
         self.offloaded_states.add(MegatronOffloadStateType.optimizer_states)
 
-    torch.cuda.synchronize()
+    current_platform.synchronize()
     gc.collect()
-    torch.cuda.empty_cache()
+    current_platform.empty_cache()
 
 
 def distributed_optimizer_reload_states(self: DistributedOptimizer,
@@ -333,7 +334,7 @@ def distributed_optimizer_reload_states(self: DistributedOptimizer,
                                         non_blocking: bool = False,
                                         skip_grad_hook_register: bool = False,
                                         ):
-    device = torch.device(f'cuda:{torch.cuda.current_device()}')
+    device = torch.device(f'{current_platform.device_type}:{current_platform.current_device()}')
 
     self.offloaded_states = getattr(self, "offloaded_states", set())
 
@@ -360,7 +361,7 @@ def distributed_optimizer_reload_states(self: DistributedOptimizer,
         reload_adam_states(self.optimizer, device, non_blocking=non_blocking)
         self.offloaded_states.remove(MegatronOffloadStateType.optimizer_states)
 
-    torch.cuda.synchronize()
+    current_platform.synchronize()
 
 
 def fp32_optimizer_offload_states(self: FP32Optimizer,
@@ -394,9 +395,9 @@ def fp32_optimizer_offload_states(self: FP32Optimizer,
         # offload optimizer states
         offload_adam_states(self.optimizer, device, pin_memory=pin_memory, non_blocking=non_blocking)
         self.offloaded_states.add(MegatronOffloadStateType.optimizer_states)
-    torch.cuda.synchronize()
+    current_platform.synchronize()
     gc.collect()
-    torch.cuda.empty_cache()
+    current_platform.empty_cache()
 
 
 def fp32_optimizer_reload_states(self: FP32Optimizer,
@@ -404,7 +405,7 @@ def fp32_optimizer_reload_states(self: FP32Optimizer,
                                  non_blocking: bool = False,
                                  skip_grad_hook_register: bool = False,
                                  ):
-    device = torch.device(f'cuda:{torch.cuda.current_device()}')
+    device = torch.device(f'{current_platform.device_type}:{current_platform.current_device()}')
     self.offloaded_states = getattr(self, "offloaded_states", set())
     if needs_reload(MegatronOffloadStateType.model_params, include, self.offloaded_states):
         float32_weights: List[Tensor] = [param for sub_group in self.optimizer.param_groups for param in
@@ -429,7 +430,7 @@ def fp32_optimizer_reload_states(self: FP32Optimizer,
         reload_adam_states(self.optimizer, device, non_blocking=non_blocking)
         self.offloaded_states.remove(MegatronOffloadStateType.optimizer_states)
 
-    torch.cuda.synchronize()
+    current_platform.synchronize()
 
 
 def offload_megatron_no_grad_module(model_chunks: List[Union[DistributedDataParallel, MegatronModule]],
@@ -492,7 +493,7 @@ def offload_megatron_no_grad_module(model_chunks: List[Union[DistributedDataPara
 
 def reload_megatron_no_grad_module(model_chunks: List[Union[DistributedDataParallel, MegatronModule]],
                                    non_blocking: bool = False):
-    device = torch.device(f'cuda:{torch.cuda.current_device()}')
+    device = torch.device(f'{current_platform.device_type}:{current_platform.current_device()}')
 
     for model_chunk in model_chunks:
         if isinstance(model_chunk, DistributedDataParallel):
